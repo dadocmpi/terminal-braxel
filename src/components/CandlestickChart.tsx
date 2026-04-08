@@ -1,21 +1,26 @@
 import React, { useEffect, useRef } from 'react';
-import * as LightweightCharts from 'lightweight-charts';
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { useTrading } from '../contexts/TradingContext';
 
 export const CandlestickChart = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<LightweightCharts.IChartApi | null>(null);
-  const seriesRef = useRef<LightweightCharts.ISeriesApi<"Candlestick"> | null>(null);
-  const emaRef = useRef<LightweightCharts.ISeriesApi<"Line"> | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
   
   const { candles, asset, timeframe, obs, fvgs, isLoading } = useTrading();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chart = LightweightCharts.createChart(chartContainerRef.current, {
+    // Limpeza de instâncias anteriores
+    if (chartRef.current) {
+      chartRef.current.remove();
+    }
+
+    const chart = createChart(chartContainerRef.current, {
       layout: {
-        background: { type: LightweightCharts.ColorType.Solid, color: 'transparent' },
+        background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#94a3b8',
         fontSize: 11,
       },
@@ -24,7 +29,7 @@ export const CandlestickChart = () => {
         horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
       },
       crosshair: {
-        mode: LightweightCharts.CrosshairMode.Normal,
+        mode: CrosshairMode.Normal,
         vertLine: { labelBackgroundColor: '#1e293b' },
         horzLine: { labelBackgroundColor: '#1e293b' },
       },
@@ -36,11 +41,9 @@ export const CandlestickChart = () => {
         timeVisible: true,
         secondsVisible: false,
       },
-      handleScroll: true,
-      handleScale: true,
     });
 
-    // Adicionando a série de Candlestick
+    // Adicionando a série de Candlestick com verificação
     const candlestickSeries = chart.addCandlestickSeries({
       upColor: '#22c55e',
       downColor: '#ef4444',
@@ -49,7 +52,7 @@ export const CandlestickChart = () => {
       wickDownColor: '#ef4444',
     });
 
-    // Adicionando a EMA 20 (Linha Cyan)
+    // Adicionando a EMA 20
     const emaSeries = chart.addLineSeries({
       color: 'hsl(185, 80%, 50%)',
       lineWidth: 1,
@@ -78,20 +81,24 @@ export const CandlestickChart = () => {
 
   useEffect(() => {
     if (seriesRef.current && emaRef.current && candles.length > 0) {
-      // Atualiza Candles
-      seriesRef.current.setData(candles as any);
-      
-      // Calcula e atualiza EMA 20
-      const emaData = candles.map((candle, index) => {
-        if (index < 20) return null;
-        const slice = candles.slice(index - 20, index);
-        const sum = slice.reduce((acc, c) => acc + c.close, 0);
-        return { time: candle.time, value: sum / 20 };
-      }).filter(d => d !== null);
-      
-      emaRef.current.setData(emaData as any);
-      
-      chartRef.current?.timeScale().fitContent();
+      try {
+        // Atualiza Candles
+        seriesRef.current.setData(candles as any);
+        
+        // Calcula e atualiza EMA 20
+        const emaData = candles.map((candle, index) => {
+          if (index < 20) return null;
+          const slice = candles.slice(index - 20, index);
+          const sum = slice.reduce((acc, c) => acc + c.close, 0);
+          return { time: candle.time, value: sum / 20 };
+        }).filter(d => d !== null);
+        
+        emaRef.current.setData(emaData as any);
+        
+        chartRef.current?.timeScale().fitContent();
+      } catch (err) {
+        console.error("Erro ao atualizar dados do gráfico:", err);
+      }
     }
   }, [candles]);
 
