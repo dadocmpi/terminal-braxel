@@ -1,21 +1,21 @@
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType, IChartApi, ISeriesApi, SeriesMarker } from 'lightweight-charts';
+import * as LightweightCharts from 'lightweight-charts';
 import { useTrading } from '../contexts/TradingContext';
 
 export const CandlestickChart = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const chartRef = useRef<LightweightCharts.IChartApi | null>(null);
+  const seriesRef = useRef<LightweightCharts.ISeriesApi<"Candlestick"> | null>(null);
+  const emaRef = useRef<LightweightCharts.ISeriesApi<"Line"> | null>(null);
   
   const { candles, asset, timeframe, obs, fvgs, isLoading } = useTrading();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
+    const chart = LightweightCharts.createChart(chartContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
+        background: { type: LightweightCharts.ColorType.Solid, color: 'transparent' },
         textColor: '#94a3b8',
         fontSize: 11,
       },
@@ -24,7 +24,7 @@ export const CandlestickChart = () => {
         horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
       },
       crosshair: {
-        mode: 0,
+        mode: LightweightCharts.CrosshairMode.Normal,
         vertLine: { labelBackgroundColor: '#1e293b' },
         horzLine: { labelBackgroundColor: '#1e293b' },
       },
@@ -63,8 +63,8 @@ export const CandlestickChart = () => {
     emaRef.current = emaSeries;
 
     const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
       }
     };
 
