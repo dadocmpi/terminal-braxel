@@ -8,17 +8,14 @@ export const CandlestickChart = () => {
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
   
-  const { candles, asset, timeframe, obs, fvgs, isLoading } = useTrading();
+  const { candles, asset, timeframe, obs, isLoading } = useTrading();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Limpeza de instâncias anteriores
-    if (chartRef.current) {
-      chartRef.current.remove();
-    }
-
     const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 450,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#94a3b8',
@@ -43,7 +40,6 @@ export const CandlestickChart = () => {
       },
     });
 
-    // Adicionando a série de Candlestick com verificação
     const candlestickSeries = chart.addCandlestickSeries({
       upColor: '#22c55e',
       downColor: '#ef4444',
@@ -52,7 +48,6 @@ export const CandlestickChart = () => {
       wickDownColor: '#ef4444',
     });
 
-    // Adicionando a EMA 20
     const emaSeries = chart.addLineSeries({
       color: 'hsl(185, 80%, 50%)',
       lineWidth: 1,
@@ -67,7 +62,9 @@ export const CandlestickChart = () => {
 
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+        chartRef.current.applyOptions({ 
+          width: chartContainerRef.current.clientWidth 
+        });
       }
     };
 
@@ -82,10 +79,8 @@ export const CandlestickChart = () => {
   useEffect(() => {
     if (seriesRef.current && emaRef.current && candles.length > 0) {
       try {
-        // Atualiza Candles
         seriesRef.current.setData(candles as any);
         
-        // Calcula e atualiza EMA 20
         const emaData = candles.map((candle, index) => {
           if (index < 20) return null;
           const slice = candles.slice(index - 20, index);
@@ -94,7 +89,6 @@ export const CandlestickChart = () => {
         }).filter(d => d !== null);
         
         emaRef.current.setData(emaData as any);
-        
         chartRef.current?.timeScale().fitContent();
       } catch (err) {
         console.error("Erro ao atualizar dados do gráfico:", err);
@@ -104,7 +98,7 @@ export const CandlestickChart = () => {
 
   return (
     <div className="relative w-full h-[450px] bg-card/30 rounded-xl border border-border/50 overflow-hidden">
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-3 pointer-events-none">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-lg font-black tracking-tighter">{asset}</span>
@@ -116,9 +110,6 @@ export const CandlestickChart = () => {
             </span>
             <span className="text-[10px] text-bear font-mono flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-bear" /> OB: {obs.filter(o => o.type === 'SELL').length}
-            </span>
-            <span className="text-[10px] text-primary font-mono flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" /> EMA 20
             </span>
           </div>
         </div>

@@ -1,4 +1,4 @@
-export type Asset = 'EURUSD' | 'GBPUSD' | 'USDCAD' | 'XAUUSD' | 'USDJPY' | 'AUDUSD' | 'GBPJPY';
+export type Asset = 'EURUSD' | 'GBPUSD' | 'USDCAD' | 'XAUUSD' | 'USDJPY' | 'AUDUSD' | 'GBPJPY' | 'EURGBP';
 export type Timeframe = 'D1' | 'H4' | 'H1' | 'M15' | 'M5' | 'M1';
 export type BiasDirection = 'BUY' | 'SELL' | 'NEUTRAL';
 
@@ -117,5 +117,6 @@ export const PIP_VALUES: Record<Asset, number> = {
   XAUUSD: 10,
   USDJPY: 6.5,
   AUDUSD: 10,
-  GBPJPY: 6.5
+  GBPJPY: 6.5,
+  EURGBP: 12.5
 };

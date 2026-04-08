@@ -50,11 +50,11 @@ export const mockSignalsData: SignalsData = {
     pairs: [
       { asset: 'EURUSD', bias: 'BUY', premium: 15, zones: { buy: 2, sell: 1 } },
       { asset: 'GBPUSD', bias: 'SELL', premium: 85, zones: { buy: 1, sell: 3 } },
-      { asset: 'XAUUSD', bias: 'BUY', premium: 45, zones: { buy: 4, sell: 2 } },
+      { asset: 'USDCAD', bias: 'SELL', premium: 78, zones: { buy: 1, sell: 2 } },
       { asset: 'USDJPY', bias: 'NEUTRAL', premium: 50, zones: { buy: 1, sell: 1 } },
       { asset: 'AUDUSD', bias: 'SELL', premium: 92, zones: { buy: 0, sell: 2 } },
       { asset: 'GBPJPY', bias: 'BUY', premium: 20, zones: { buy: 3, sell: 0 } },
-      { asset: 'USDCAD', bias: 'SELL', premium: 78, zones: { buy: 1, sell: 2 } }
+      { asset: 'EURGBP', bias: 'BUY', premium: 10, zones: { buy: 2, sell: 0 } }
     ],
     activity_log: [
       { id: 'l1', time: '10:45:22', type: 'signal', message: 'Novo sinal detectado: EURUSD BUY @ 1.08542' },

@@ -10,12 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 export const DashboardHeader = () => {
   const { asset, setAsset, timeframe, setTimeframe, isLoading } = useTrading();
 
-  const assets: Asset[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'XAUUSD', 'USDJPY', 'AUDUSD', 'GBPJPY'];
+  const assets: Asset[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'XAUUSD', 'USDJPY', 'AUDUSD', 'GBPJPY', 'EURGBP'];
   const timeframes: Timeframe[] = ['D1', 'H4', 'H1', 'M15', 'M5', 'M1'];
 
   return (
