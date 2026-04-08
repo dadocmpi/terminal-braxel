@@ -1,52 +1,94 @@
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 
 export const StatusCards = () => {
-  const { d1Bias, premiumPct, atr } = useTrading();
+  const { d1Bias, premiumPct, signalsData } = useTrading();
+  const signal = signalsData.active_signal;
 
   return (
-    <div className="grid grid-cols-3 gap-4">
-      <Card className="bg-card/50 border-border/50 p-4 flex flex-col justify-between">
+    <div className="grid grid-cols-12 gap-0 border-b border-border/50">
+      {/* Main Bias Card */}
+      <div className="col-span-4 p-6 border-r border-border/50 bg-bull/5">
         <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">D1 Bias</span>
-        <div className="flex items-end justify-between mt-2">
-          <span className={`text-2xl font-black ${d1Bias === 'BUY' ? 'text-bull' : d1Bias === 'SELL' ? 'text-bear' : 'text-muted-foreground'}`}>
-            {d1Bias}
-          </span>
-          <span className="text-[10px] text-muted-foreground font-mono">EMA 100 Filter</span>
+        <div className="mt-2">
+          <h2 className={`text-4xl font-black tracking-tighter glow-text-bull ${d1Bias === 'BUY' ? 'text-bull' : 'text-bear'}`}>
+            {d1Bias === 'BUY' ? 'COMPRA' : 'VENDA'}
+          </h2>
+          <p className="text-[10px] text-muted-foreground mt-1 font-mono">EMA 100 + STRUCTURE FILTER</p>
         </div>
-      </Card>
+        
+        <div className="mt-6 space-y-2">
+          <div className="flex justify-between text-[10px] font-bold">
+            <span className="text-muted-foreground">CONFIDENCE</span>
+            <span className="text-bull">78.4%</span>
+          </div>
+          <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
+            <div className="h-full bg-bull" style={{ width: '78.4%' }} />
+          </div>
+        </div>
+      </div>
 
-      <Card className="bg-card/50 border-border/50 p-4 flex flex-col justify-between">
-        <div className="flex justify-between items-center">
+      {/* Premium/Discount Card */}
+      <div className="col-span-4 p-6 border-r border-border/50">
+        <div className="flex justify-between items-center mb-4">
           <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Premium / Discount</span>
-          <span className="text-[10px] font-mono text-primary">{premiumPct.toFixed(1)}%</span>
+          <span className="text-xl font-mono font-bold text-primary">{premiumPct.toFixed(1)}%</span>
         </div>
-        <div className="mt-3">
-          <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden flex">
-            <div className="h-full bg-bear" style={{ width: '30%' }} />
-            <div className="h-full bg-muted" style={{ width: '40%' }} />
-            <div className="h-full bg-bull" style={{ width: '30%' }} />
+        <div className="relative h-12 flex items-center">
+          <div className="absolute inset-0 flex">
+            <div className="h-full w-1/3 bg-bear/10 border-r border-border/30 flex items-center justify-center">
+              <span className="text-[8px] text-bear font-bold uppercase opacity-50">Premium</span>
+            </div>
+            <div className="h-full w-1/3 bg-secondary/20 border-r border-border/30 flex items-center justify-center">
+              <span className="text-[8px] text-muted-foreground font-bold uppercase opacity-50">Equilibrium</span>
+            </div>
+            <div className="h-full w-1/3 bg-bull/10 flex items-center justify-center">
+              <span className="text-[8px] text-bull font-bold uppercase opacity-50">Discount</span>
+            </div>
           </div>
-          <div className="relative mt-1 h-1">
-            <div 
-              className="absolute top-0 w-1 h-3 bg-white -translate-y-1/2 rounded-full shadow-lg" 
-              style={{ left: `${premiumPct}%` }} 
-            />
-          </div>
+          <div 
+            className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_10px_white] z-10 transition-all duration-500" 
+            style={{ left: `${premiumPct}%` }} 
+          />
         </div>
-      </Card>
+        <p className="text-[9px] text-muted-foreground mt-3 text-center font-mono">PRICE IS IN DISCOUNT ZONE</p>
+      </div>
 
-      <Card className="bg-card/50 border-border/50 p-4 flex flex-col justify-between">
-        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">ATR (H4)</span>
-        <div className="flex items-end justify-between mt-2">
-          <span className="text-2xl font-mono font-bold text-foreground">
-            {(atr * 10000).toFixed(1)} <span className="text-xs text-muted-foreground font-normal">pips</span>
-          </span>
-          <span className="text-[10px] text-muted-foreground font-mono">Volatility Index</span>
+      {/* Performance Summary */}
+      <div className="col-span-4 p-6 flex items-center gap-8">
+        <div className="relative w-20 h-20">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="16" fill="none" className="stroke-secondary" strokeWidth="3" />
+            <circle cx="18" cy="18" r="16" fill="none" className="stroke-bull" strokeWidth="3" strokeDasharray="72, 100" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-black">72%</span>
+            <span className="text-[7px] text-muted-foreground uppercase font-bold">Win Rate</span>
+          </div>
         </div>
-      </Card>
+        
+        <div className="flex-1 space-y-4">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold">Weekly P&L</p>
+            <p className="text-2xl font-mono font-black text-bull">+85.4 <span className="text-xs">pips</span></p>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-bull" />
+              <span className="text-[10px] font-bold">12W</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-bear" />
+              <span className="text-[10px] font-bold">4L</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+              <span className="text-[10px] font-bold">2B</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
