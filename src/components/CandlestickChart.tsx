@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
+import { createChart, ColorType, IChartApi, ISeriesApi, SeriesMarker } from 'lightweight-charts';
 import { useTrading } from '../contexts/TradingContext';
 
 export const CandlestickChart = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  
   const { candles, asset, timeframe, obs, fvgs, isLoading } = useTrading();
 
   useEffect(() => {
@@ -32,11 +34,13 @@ export const CandlestickChart = () => {
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.1)',
         timeVisible: true,
+        secondsVisible: false,
       },
       handleScroll: true,
       handleScale: true,
     });
 
+    // Adicionando a série de Candlestick
     const candlestickSeries = chart.addCandlestickSeries({
       upColor: '#22c55e',
       downColor: '#ef4444',
@@ -45,8 +49,18 @@ export const CandlestickChart = () => {
       wickDownColor: '#ef4444',
     });
 
+    // Adicionando a EMA 20 (Linha Cyan)
+    const emaSeries = chart.addLineSeries({
+      color: 'hsl(185, 80%, 50%)',
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+
     chartRef.current = chart;
     seriesRef.current = candlestickSeries;
+    emaRef.current = emaSeries;
 
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -63,8 +77,20 @@ export const CandlestickChart = () => {
   }, []);
 
   useEffect(() => {
-    if (seriesRef.current && candles.length > 0) {
+    if (seriesRef.current && emaRef.current && candles.length > 0) {
+      // Atualiza Candles
       seriesRef.current.setData(candles as any);
+      
+      // Calcula e atualiza EMA 20
+      const emaData = candles.map((candle, index) => {
+        if (index < 20) return null;
+        const slice = candles.slice(index - 20, index);
+        const sum = slice.reduce((acc, c) => acc + c.close, 0);
+        return { time: candle.time, value: sum / 20 };
+      }).filter(d => d !== null);
+      
+      emaRef.current.setData(emaData as any);
+      
       chartRef.current?.timeScale().fitContent();
     }
   }, [candles]);
@@ -78,9 +104,15 @@ export const CandlestickChart = () => {
             <span className="text-[10px] font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{timeframe}</span>
           </div>
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-[10px] text-bull font-mono">OB: {obs.filter(o => o.type === 'BUY').length}</span>
-            <span className="text-[10px] text-bear font-mono">OB: {obs.filter(o => o.type === 'SELL').length}</span>
-            <span className="text-[10px] text-primary font-mono">FVG: {fvgs.length}</span>
+            <span className="text-[10px] text-bull font-mono flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-bull" /> OB: {obs.filter(o => o.type === 'BUY').length}
+            </span>
+            <span className="text-[10px] text-bear font-mono flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-bear" /> OB: {obs.filter(o => o.type === 'SELL').length}
+            </span>
+            <span className="text-[10px] text-primary font-mono flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" /> EMA 20
+            </span>
           </div>
         </div>
       </div>
