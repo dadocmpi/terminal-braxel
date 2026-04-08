@@ -34,7 +34,7 @@
 
     --radius: 0.2rem;
 
-    /* Trading-specific tokens */
+    /* Trading-specific tokens (format: H S L) */
     --bull: 142 70% 45%;
     --bear: 0 84% 60%;
   }
@@ -53,13 +53,15 @@
   }
 }
 
-.terminal-card {
-  @apply bg-[#0a0d12] border-[#1e232d] rounded-sm;
+@layer components {
+  .terminal-card {
+    @apply bg-[#0a0d12] border-[#1e232d] rounded-sm;
+  }
+
+  .price-box-entry { @apply bg-secondary/50 border-l-4 border-primary; }
+  .price-box-sl { @apply bg-destructive/10 border-l-4 border-destructive; }
+  .price-box-tp { @apply bg-bull/10 border-l-4 border-bull; }
+
+  .glow-text-bull { text-shadow: 0 0 10px hsla(var(--bull), 0.5); }
+  .glow-text-bear { text-shadow: 0 0 10px hsla(var(--bear), 0.5); }
 }
-
-.price-box-entry { @apply bg-secondary/50 border-l-4 border-primary; }
-.price-box-sl { @apply bg-destructive/10 border-l-4 border-destructive; }
-.price-box-tp { @apply bg-bull/10 border-l-4 border-bull; }
-
-.glow-text-bull { text-shadow: 0 0 10px hsla(var(--bull), 0.5); }
-.glow-text-bear { text-shadow: 0 0 10px hsla(var(--bear), 0.5); }
