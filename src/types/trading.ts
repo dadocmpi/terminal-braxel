@@ -1,6 +1,15 @@
 export type Asset = 'EURUSD' | 'GBPUSD' | 'USDCAD' | 'XAUUSD' | 'USDJPY' | 'AUDUSD' | 'GBPJPY' | 'EURGBP';
 export type Timeframe = 'D1' | 'H4' | 'H1' | 'M15' | 'M5' | 'M1';
 export type BiasDirection = 'BUY' | 'SELL' | 'NEUTRAL';
+export type MarketSession = 'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CLOSE';
+
+export const SESSION_ASSETS: Record<MarketSession, Asset[]> = {
+  SYDNEY: ['AUDUSD', 'USDJPY'],
+  TOKYO: ['USDJPY', 'GBPJPY', 'AUDUSD'],
+  LONDON: ['EURUSD', 'GBPUSD', 'EURGBP', 'GBPJPY'],
+  NEW_YORK: ['EURUSD', 'GBPUSD', 'USDCAD', 'XAUUSD'],
+  CLOSE: []
+};
 
 export interface Candle {
   time: number;

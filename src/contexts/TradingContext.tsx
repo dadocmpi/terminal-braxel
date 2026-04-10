@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, SignalsData, ActiveSignal } from '../types/trading';
+import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS } from '../types/trading';
 import { generateMockCandles, analyzeWSBot } from '../data/mockData';
 import { mockSignalsData } from '../data/signalsData';
 import { playAlertSound } from '../utils/audio';
@@ -18,16 +18,47 @@ interface TradingContextType {
   activeSignal: ActiveSignal | null;
   signalsData: SignalsData;
   isLoading: boolean;
+  currentSession: MarketSession;
+  activeAssets: Asset[];
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
+const getMarketSession = (): MarketSession => {
+  const hour = new Date().getUTCHours();
+  
+  if (hour >= 22 || hour < 7) return 'SYDNEY';
+  if (hour >= 0 && hour < 9) return 'TOKYO';
+  if (hour >= 8 && hour < 17) return 'LONDON';
+  if (hour >= 13 && hour < 22) return 'NEW_YORK';
+  
+  return 'CLOSE';
+};
+
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [asset, setAsset] = useState<Asset>('EURUSD');
+  const [currentSession, setCurrentSession] = useState<MarketSession>(getMarketSession());
+  const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession]);
+  const [asset, setAsset] = useState<Asset>(activeAssets[0] || 'EURUSD');
   const [timeframe, setTimeframe] = useState<Timeframe>('M1');
   const [candles, setCandles] = useState<Candle[]>([]);
   const [analysis, setAnalysis] = useState<any>({ obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Timer para verificar sessão a cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const session = getMarketSession();
+      if (session !== currentSession) {
+        setCurrentSession(session);
+        const newAssets = SESSION_ASSETS[session];
+        setActiveAssets(newAssets);
+        if (!newAssets.includes(asset)) {
+          setAsset(newAssets[0] || 'EURUSD');
+        }
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [currentSession, asset]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -40,7 +71,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setAnalysis(result);
       setIsLoading(false);
 
-      // Alerta sonoro se um novo sinal Tipo A ou B for detectado
       if (result.activeSignal && (result.activeSignal.type_code === 'A' || result.activeSignal.type_code === 'B')) {
         playAlertSound(result.activeSignal.type_code === 'A' ? 'critical' : 'success');
       }
@@ -55,7 +85,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       candles,
       ...analysis,
       signalsData: mockSignalsData,
-      isLoading
+      isLoading,
+      currentSession,
+      activeAssets
     }}>
       {children}
     </TradingContext.Provider>
