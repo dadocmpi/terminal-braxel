@@ -4,7 +4,15 @@ import { Card } from "@/components/ui/card";
 
 export const StatusCards = () => {
   const { d1Bias, premiumPct, signalsData } = useTrading();
-  const signal = signalsData.active_signal;
+  
+  // Lógica dinâmica para o status
+  const getZoneStatus = (pct: number) => {
+    if (pct < 40) return { label: "PRICE IS IN DISCOUNT ZONE", color: "text-bull" };
+    if (pct > 60) return { label: "PRICE IS IN PREMIUM ZONE", color: "text-bear" };
+    return { label: "PRICE IS IN EQUILIBRIUM", color: "text-muted-foreground" };
+  };
+
+  const zone = getZoneStatus(premiumPct);
 
   return (
     <div className="grid grid-cols-12 gap-0 border-b border-border/50">
@@ -29,7 +37,7 @@ export const StatusCards = () => {
         </div>
       </div>
 
-      {/* Premium/Discount Card */}
+      {/* Premium/Discount Card - CORRIGIDO */}
       <div className="col-span-4 p-6 border-r border-border/50">
         <div className="flex justify-between items-center mb-4">
           <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Premium / Discount</span>
@@ -37,14 +45,17 @@ export const StatusCards = () => {
         </div>
         <div className="relative h-12 flex items-center">
           <div className="absolute inset-0 flex">
-            <div className="h-full w-1/3 bg-bear/10 border-r border-border/30 flex items-center justify-center">
-              <span className="text-[8px] text-bear font-bold uppercase opacity-50">Premium</span>
+            {/* 0% - 33%: Discount (Green) */}
+            <div className="h-full w-1/3 bg-bull/10 border-r border-border/30 flex items-center justify-center">
+              <span className="text-[8px] text-bull font-bold uppercase opacity-50">Discount</span>
             </div>
+            {/* 33% - 66%: Equilibrium */}
             <div className="h-full w-1/3 bg-secondary/20 border-r border-border/30 flex items-center justify-center">
               <span className="text-[8px] text-muted-foreground font-bold uppercase opacity-50">Equilibrium</span>
             </div>
-            <div className="h-full w-1/3 bg-bull/10 flex items-center justify-center">
-              <span className="text-[8px] text-bull font-bold uppercase opacity-50">Discount</span>
+            {/* 66% - 100%: Premium (Red) */}
+            <div className="h-full w-1/3 bg-bear/10 flex items-center justify-center">
+              <span className="text-[8px] text-bear font-bold uppercase opacity-50">Premium</span>
             </div>
           </div>
           <div 
@@ -52,7 +63,9 @@ export const StatusCards = () => {
             style={{ left: `${premiumPct}%` }} 
           />
         </div>
-        <p className="text-[9px] text-muted-foreground mt-3 text-center font-mono">PRICE IS IN DISCOUNT ZONE</p>
+        <p className={`text-[9px] mt-3 text-center font-mono font-bold ${zone.color}`}>
+          {zone.label}
+        </p>
       </div>
 
       {/* Performance Summary */}
