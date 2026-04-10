@@ -49,7 +49,7 @@ export const CandlestickChart = () => {
     });
 
     const emaSeries = chart.addLineSeries({
-      color: 'hsl(185, 80%, 50%)',
+      color: '#1AE6D5', // Convertido de hsl(185, 80%, 50%) para Hex
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
