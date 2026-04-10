@@ -8,7 +8,7 @@ export const DashboardHeader = () => {
   const { isLoading, currentSession } = useTrading();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/90 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-10">
         <div className="flex items-center gap-5">
           <div className="w-14 h-14 flex items-center justify-center">
@@ -23,8 +23,8 @@ export const DashboardHeader = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 px-4 py-1.5 bg-white/5 rounded-sm border border-white/10">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Session:</span>
+        <div className="flex items-center bg-[#0a0a0a] border border-white/10 px-4 py-2 rounded-none">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-2">SESSION:</span>
           <span className="text-[10px] font-black text-primary uppercase tracking-widest">{currentSession}</span>
         </div>
       </div>
