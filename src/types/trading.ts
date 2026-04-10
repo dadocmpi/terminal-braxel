@@ -8,7 +8,7 @@ export interface Candle {
   high: number;
   low: number;
   close: number;
-  volume?: number;
+  volume: number;
 }
 
 export interface OrderBlock {
@@ -20,6 +20,7 @@ export interface OrderBlock {
   high: number;
   ageCandles: number;
   status: 'active' | 'mitigated';
+  institutional_score: number;
 }
 
 export interface FairValueGap {
@@ -33,33 +34,24 @@ export interface FairValueGap {
 }
 
 export interface MarketStructure {
-  type: 'HH' | 'HL' | 'LH' | 'LL';
+  type: 'HH' | 'HL' | 'LH' | 'LL' | 'BOS' | 'CHoCH';
   price: number;
-  candleIndex: number;
+  time: number;
 }
 
-export interface SweepEvent {
-  id: string;
-  asset: Asset;
-  level: number;
-  spikePips: number;
-  direction: 'BUY' | 'SELL';
-  timestamp: string;
+export interface BankManipulation {
+  stop_hunt: boolean;
+  stop_hunt_pips: number;
+  wyckoff_pattern: string;
+  fixing_window: string;
+  score_bonus: number;
 }
 
-export interface SignalHistoryItem {
-  id: string;
-  time: string;
-  asset: Asset;
-  direction: 'BUY' | 'SELL';
-  zone: string;
-  entry: number;
-  sl: number;
-  tp1: number;
-  rr: number;
-  confidence: number;
-  status: 'WIN' | 'LOSS' | 'PENDING';
-  pips: number;
+export interface ConfirmationGate {
+  stop_hunt: boolean;
+  choch: boolean;
+  of_aligned: boolean;
+  pillars_count: number;
 }
 
 export interface ActiveSignal {
@@ -73,22 +65,10 @@ export interface ActiveSignal {
   tp1_pips: number;
   tp2_pips: number;
   rr: number;
-  rr2: number;
-  lot_size: number;
-  session: string;
-  zone_kind: string;
-  zone_tf: string;
-  zone_quality: string;
-  zone_age: number;
-  of_bull_pct: number;
-  entry_pattern: string;
   confidence: number;
-  d1_bias: BiasDirection;
-  htf_bias: BiasDirection;
-  premium_pct: number;
-  pdh: number;
-  pdl: number;
-  liquidity_targets: { label: string; price: number; pips: number }[];
+  type_code: 'A' | 'B' | 'C' | 'D';
+  gate: ConfirmationGate;
+  manipulation: BankManipulation;
   checklist: {
     d1_aligned: boolean;
     htf_aligned: boolean;
@@ -97,26 +77,13 @@ export interface ActiveSignal {
     m1_candle: boolean;
     premium_ok: boolean;
   };
-  status: 'PENDING' | 'WIN' | 'LOSS';
 }
 
 export interface SignalsData {
   last_updated: string;
   active_signal: ActiveSignal | null;
-  signals: SignalHistoryItem[];
   market_context: {
     pairs: { asset: Asset; bias: BiasDirection; premium: number; zones: { buy: number; sell: number } }[];
     activity_log: { id: string; time: string; type: 'signal' | 'touch' | 'scan' | 'info' | 'warning'; message: string }[];
   };
 }
-
-export const PIP_VALUES: Record<Asset, number> = {
-  EURUSD: 10,
-  GBPUSD: 10,
-  USDCAD: 7.5,
-  XAUUSD: 10,
-  USDJPY: 6.5,
-  AUDUSD: 10,
-  GBPJPY: 6.5,
-  EURGBP: 12.5
-};

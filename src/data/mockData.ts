@@ -1,89 +1,102 @@
-import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection } from '../types/trading';
+import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, ActiveSignal } from '../types/trading';
 
 export const generateMockCandles = (count: number, basePrice: number): Candle[] => {
   const candles: Candle[] = [];
   let currentPrice = basePrice;
   const now = Math.floor(Date.now() / 1000);
-  const interval = 3600; // 1h
+  const interval = 60; // M1
 
   for (let i = 0; i < count; i++) {
-    const change = (Math.random() - 0.5) * (basePrice * 0.002);
+    const change = (Math.random() - 0.5) * (basePrice * 0.001);
     const open = currentPrice;
     const close = currentPrice + change;
-    const high = Math.max(open, close) + Math.random() * (basePrice * 0.001);
-    const low = Math.min(open, close) - Math.random() * (basePrice * 0.001);
+    const high = Math.max(open, close) + Math.random() * (basePrice * 0.0005);
+    const low = Math.min(open, close) - Math.random() * (basePrice * 0.0005);
     
     candles.push({
       time: now - (count - i) * interval,
       open,
       high,
       low,
-      close
+      close,
+      volume: Math.random() * 1000
     });
     currentPrice = close;
   }
   return candles;
 };
 
-export const analyzeSMC = (candles: Candle[], asset: Asset, timeframe: Timeframe) => {
+export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timeframe) => {
   const obs: OrderBlock[] = [];
   const fvgs: FairValueGap[] = [];
   const structure: MarketStructure[] = [];
+  
+  const lastCandle = candles[candles.length - 1];
+  const prevCandle = candles[candles.length - 2];
 
-  // Simple OB detection: Bearish candle before a strong move up
-  for (let i = 2; i < candles.length - 2; i++) {
-    const c1 = candles[i-1];
-    const c2 = candles[i];
-    const c3 = candles[i+1];
+  // 1. Detecção de Stop Hunt (Sombra longa + Reversão)
+  const isStopHunt = (lastCandle.high - Math.max(lastCandle.open, lastCandle.close)) > (Math.abs(lastCandle.close - lastCandle.open) * 2);
+  
+  // 2. Detecção de CHoCH (Quebra de estrutura recente)
+  const isCHoCH = lastCandle.close > Math.max(...candles.slice(-10, -1).map(c => c.high));
 
-    // Buy OB
-    if (c1.close < c1.open && c2.close > c2.open && c3.close > c2.high) {
-      obs.push({
-        id: `ob-buy-${i}`,
-        asset,
-        timeframe,
-        type: 'BUY',
-        low: c1.low,
-        high: c1.high,
-        ageCandles: candles.length - i,
-        status: 'active'
-      });
-    }
+  // 3. Order Flow (Volume + Delta simulado)
+  const isOFAligned = lastCandle.volume > (candles.slice(-20).reduce((a, b) => a + b.volume, 0) / 20);
 
-    // FVG detection
-    if (candles[i].low > candles[i-2].high) {
-      fvgs.push({
-        id: `fvg-buy-${i}`,
-        asset,
-        timeframe,
-        type: 'BUY',
-        low: candles[i-2].high,
-        high: candles[i].low,
-        status: 'active'
-      });
-    } else if (candles[i].high < candles[i-2].low) {
-      fvgs.push({
-        id: `fvg-sell-${i}`,
-        asset,
-        timeframe,
-        type: 'SELL',
-        low: candles[i].high,
-        high: candles[i-2].low,
-        status: 'active'
-      });
-    }
+  // 4. Bias D1
+  const d1Bias: BiasDirection = lastCandle.close > candles[0].close ? 'BUY' : 'SELL';
+
+  // 5. Premium/Discount
+  const high = Math.max(...candles.map(c => c.high));
+  const low = Math.min(...candles.map(c => c.low));
+  const premiumPct = ((lastCandle.close - low) / (high - low)) * 100;
+
+  // Gerar Sinal Ativo se houver confluência (Pelo menos 2 pilares)
+  let activeSignal: ActiveSignal | null = null;
+  const pillarsCount = (isStopHunt ? 1 : 0) + (isCHoCH ? 1 : 0) + (isOFAligned ? 1 : 0);
+
+  if (pillarsCount >= 2) {
+    const direction = d1Bias;
+    const entry = lastCandle.close;
+    const sl = direction === 'BUY' ? low : high;
+    const tp1 = entry + (Math.abs(entry - sl) * 1.5);
+    
+    activeSignal = {
+      asset,
+      direction,
+      entry,
+      sl,
+      tp1,
+      tp2: entry + (Math.abs(entry - sl) * 2.5),
+      sl_pips: Math.abs(entry - sl) * 10000,
+      tp1_pips: Math.abs(entry - tp1) * 10000,
+      tp2_pips: Math.abs(entry - sl) * 2.5 * 10000,
+      rr: 1.5,
+      confidence: 70 + (pillarsCount * 10),
+      type_code: pillarsCount === 3 ? 'A' : 'B',
+      gate: {
+        stop_hunt: isStopHunt,
+        choch: isCHoCH,
+        of_aligned: isOFAligned,
+        pillars_count: pillarsCount
+      },
+      manipulation: {
+        stop_hunt: isStopHunt,
+        stop_hunt_pips: 5.2,
+        wyckoff_pattern: isStopHunt ? 'SPRING' : 'NONE',
+        fixing_window: 'NY_OPEN',
+        score_bonus: isStopHunt ? 30 : 0
+      },
+      checklist: {
+        d1_aligned: true,
+        htf_aligned: true,
+        zone_touched: true,
+        of_confirmed: isOFAligned,
+        m1_candle: true,
+        premium_ok: direction === 'BUY' ? premiumPct < 50 : premiumPct > 50
+      }
+    };
   }
 
-  // D1 Bias logic
-  const lastClose = candles[candles.length - 1].close;
-  const avg = candles.slice(-100).reduce((acc, c) => acc + c.close, 0) / 100;
-  const d1Bias: BiasDirection = lastClose > avg * 1.002 ? 'BUY' : lastClose < avg * 0.998 ? 'SELL' : 'NEUTRAL';
-
-  // Premium/Discount
-  const recent = candles.slice(-20);
-  const high = Math.max(...recent.map(c => c.high));
-  const low = Math.min(...recent.map(c => c.low));
-  const premiumPct = ((lastClose - low) / (high - low)) * 100;
-
-  return { obs, fvgs, structure, d1Bias, premiumPct, atr: (high - low) / 10 };
+  return { obs, fvgs, structure, d1Bias, premiumPct, activeSignal };
 };

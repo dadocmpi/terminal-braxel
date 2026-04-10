@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, SignalsData } from '../types/trading';
-import { generateMockCandles, analyzeSMC } from '../data/mockData';
+import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, SignalsData, ActiveSignal } from '../types/trading';
+import { generateMockCandles, analyzeWSBot } from '../data/mockData';
 import { mockSignalsData } from '../data/signalsData';
+import { playAlertSound } from '../utils/audio';
 
 interface TradingContextType {
   asset: Asset;
@@ -14,7 +15,7 @@ interface TradingContextType {
   structure: MarketStructure[];
   d1Bias: BiasDirection;
   premiumPct: number;
-  atr: number;
+  activeSignal: ActiveSignal | null;
   signalsData: SignalsData;
   isLoading: boolean;
 }
@@ -23,21 +24,27 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [asset, setAsset] = useState<Asset>('EURUSD');
-  const [timeframe, setTimeframe] = useState<Timeframe>('H1');
+  const [timeframe, setTimeframe] = useState<Timeframe>('M1');
   const [candles, setCandles] = useState<Candle[]>([]);
-  const [analysis, setAnalysis] = useState<any>({ obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, atr: 0 });
+  const [analysis, setAnalysis] = useState<any>({ obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsLoading(true);
-    // Simulate fetching data
     const timer = setTimeout(() => {
-      const basePrice = asset === 'XAUUSD' ? 2300 : asset === 'USDJPY' || asset === 'GBPJPY' ? 150 : 1.1;
+      const basePrice = asset === 'XAUUSD' ? 2300 : asset === 'USDJPY' || asset === 'GBPJPY' ? 150 : 1.08500;
       const newCandles = generateMockCandles(200, basePrice);
+      const result = analyzeWSBot(newCandles, asset, timeframe);
+      
       setCandles(newCandles);
-      setAnalysis(analyzeSMC(newCandles, asset, timeframe));
+      setAnalysis(result);
       setIsLoading(false);
-    }, 500);
+
+      // Alerta sonoro se um novo sinal Tipo A ou B for detectado
+      if (result.activeSignal && (result.activeSignal.type_code === 'A' || result.activeSignal.type_code === 'B')) {
+        playAlertSound(result.activeSignal.type_code === 'A' ? 'critical' : 'success');
+      }
+    }, 800);
     return () => clearTimeout(timer);
   }, [asset, timeframe]);
 
