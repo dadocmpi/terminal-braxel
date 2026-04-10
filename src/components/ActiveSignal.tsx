@@ -2,7 +2,7 @@ import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, MousePointer2 } from 'lucide-react';
 
 export const ActiveSignal = () => {
   const { activeSignal } = useTrading();
@@ -21,9 +21,16 @@ export const ActiveSignal = () => {
   return (
     <Card className={`bg-[#0d1117] border-x-0 border-t-0 border-b-4 rounded-none overflow-hidden ${isShort ? 'border-b-bear' : 'border-b-bull'}`}>
       <div className="bg-primary/10 px-6 py-2 border-b border-border/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-primary animate-pulse" />
-          <span className="text-[10px] font-black tracking-[0.2em] text-primary uppercase">High Probability Execution Window</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-primary animate-pulse" />
+            <span className="text-[10px] font-black tracking-[0.2em] text-primary uppercase">High Probability Execution Window</span>
+          </div>
+          <div className="h-4 w-px bg-border/50" />
+          <div className="flex items-center gap-2 bg-bull/20 px-2 py-0.5 rounded border border-bull/30">
+            <MousePointer2 className="w-3 h-3 text-bull animate-bounce" />
+            <span className="text-[9px] font-black text-bull uppercase tracking-widest">Execução Instantânea</span>
+          </div>
         </div>
         <span className="text-[10px] font-mono text-muted-foreground">Detected: {new Date().toLocaleTimeString()}</span>
       </div>

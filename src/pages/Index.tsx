@@ -23,8 +23,8 @@ const DashboardContent = () => {
 
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
           {/* Left: Multi-Chart Grid (3 Columns) */}
-          <div className="col-span-12 xl:col-span-9 p-6 border-r border-border/50">
-            <div className="flex items-center justify-between mb-6">
+          <div className="col-span-12 xl:col-span-9 p-8 border-r border-border/50 bg-gradient-to-b from-transparent to-secondary/5">
+            <div className="flex items-center justify-between mb-8">
               <div className="flex flex-col">
                 <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
                   Session Terminal: <span className="text-primary">{currentSession}</span>
@@ -37,14 +37,14 @@ const DashboardContent = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {activeAssets.map(asset => (
                 <div key={asset} className="relative">
                   <MiniChart asset={asset} />
                 </div>
               ))}
               {activeAssets.length === 0 && (
-                <div className="col-span-full h-[400px] flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl bg-secondary/5">
+                <div className="col-span-full h-[500px] flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl bg-secondary/5">
                   <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Market is currently closed</p>
                   <p className="text-[10px] text-muted-foreground/50 mt-2">Waiting for Sydney Open...</p>
                 </div>
@@ -66,7 +66,7 @@ const DashboardContent = () => {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-8 space-y-6">
           <SignalHistory />
         </div>
 

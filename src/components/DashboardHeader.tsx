@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Calculator } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { useTrading } from '../contexts/TradingContext';
 import { WorldClocks } from './WorldClocks';
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,12 @@ export const DashboardHeader = () => {
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-[#0a0d12]/90 backdrop-blur-md px-6 py-2 flex items-center justify-between">
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-primary/10 rounded border border-primary/20">
-            <Shield className="w-5 h-5 text-primary" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img 
+              src="dyad-media://media/cozy-beaver-jump/.dyad/media/b2eee0c01707592ac5eed94cf5b9ed19.png" 
+              alt="Braxel Logo" 
+              className="w-full h-full object-contain brightness-200"
+            />
           </div>
           <div>
             <h1 className="text-sm font-black tracking-tighter leading-none">BRAXEL MARKETS</h1>
