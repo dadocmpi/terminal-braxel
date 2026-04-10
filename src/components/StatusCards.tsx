@@ -1,59 +1,55 @@
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
-import { Card } from "@/components/ui/card";
 
 export const StatusCards = () => {
-  const { d1Bias, premiumPct, signalsData } = useTrading();
+  const { d1Bias, premiumPct, currentSession } = useTrading();
   
-  // Lógica dinâmica para o status
+  // Lógica para o status da sessão
   const getZoneStatus = (pct: number) => {
-    if (pct < 40) return { label: "PRICE IS IN DISCOUNT ZONE", color: "text-bull" };
-    if (pct > 60) return { label: "PRICE IS IN PREMIUM ZONE", color: "text-bear" };
-    return { label: "PRICE IS IN EQUILIBRIUM", color: "text-muted-foreground" };
+    if (pct < 40) return { label: "SESSION IN DISCOUNT ZONE", color: "text-bull" };
+    if (pct > 60) return { label: "SESSION IN PREMIUM ZONE", color: "text-bear" };
+    return { label: "SESSION IN EQUILIBRIUM", color: "text-muted-foreground" };
   };
 
   const zone = getZoneStatus(premiumPct);
 
   return (
     <div className="grid grid-cols-12 gap-0 border-b border-border/50">
-      {/* Main Bias Card */}
+      {/* Session Bias Card */}
       <div className="col-span-4 p-6 border-r border-border/50 bg-bull/5">
-        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">D1 Bias</span>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{currentSession} BIAS</span>
         <div className="mt-2">
           <h2 className={`text-4xl font-black tracking-tighter glow-text-bull ${d1Bias === 'BUY' ? 'text-bull' : 'text-bear'}`}>
             {d1Bias === 'BUY' ? 'COMPRA' : 'VENDA'}
           </h2>
-          <p className="text-[10px] text-muted-foreground mt-1 font-mono">EMA 100 + STRUCTURE FILTER</p>
+          <p className="text-[10px] text-muted-foreground mt-1 font-mono uppercase">Institutional Flow Estimate</p>
         </div>
         
         <div className="mt-6 space-y-2">
           <div className="flex justify-between text-[10px] font-bold">
-            <span className="text-muted-foreground">CONFIDENCE</span>
-            <span className="text-bull">78.4%</span>
+            <span className="text-muted-foreground">SESSION CONFIDENCE</span>
+            <span className="text-bull">82.1%</span>
           </div>
           <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
-            <div className="h-full bg-bull" style={{ width: '78.4%' }} />
+            <div className="h-full bg-bull" style={{ width: '82.1%' }} />
           </div>
         </div>
       </div>
 
-      {/* Premium/Discount Card - CORRIGIDO */}
+      {/* Session Premium/Discount Card */}
       <div className="col-span-4 p-6 border-r border-border/50">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Premium / Discount</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Session P/D Range</span>
           <span className="text-xl font-mono font-bold text-primary">{premiumPct.toFixed(1)}%</span>
         </div>
         <div className="relative h-12 flex items-center">
           <div className="absolute inset-0 flex">
-            {/* 0% - 33%: Discount (Green) */}
             <div className="h-full w-1/3 bg-bull/10 border-r border-border/30 flex items-center justify-center">
               <span className="text-[8px] text-bull font-bold uppercase opacity-50">Discount</span>
             </div>
-            {/* 33% - 66%: Equilibrium */}
             <div className="h-full w-1/3 bg-secondary/20 border-r border-border/30 flex items-center justify-center">
               <span className="text-[8px] text-muted-foreground font-bold uppercase opacity-50">Equilibrium</span>
             </div>
-            {/* 66% - 100%: Premium (Red) */}
             <div className="h-full w-1/3 bg-bear/10 flex items-center justify-center">
               <span className="text-[8px] text-bear font-bold uppercase opacity-50">Premium</span>
             </div>
@@ -68,7 +64,7 @@ export const StatusCards = () => {
         </p>
       </div>
 
-      {/* Performance Summary */}
+      {/* Session Performance */}
       <div className="col-span-4 p-6 flex items-center gap-8">
         <div className="relative w-20 h-20">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
@@ -83,7 +79,7 @@ export const StatusCards = () => {
         
         <div className="flex-1 space-y-4">
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold">Weekly P&L</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold">Session P&L</p>
             <p className="text-2xl font-mono font-black text-bull">+85.4 <span className="text-xs">pips</span></p>
           </div>
           <div className="flex gap-4">
@@ -94,10 +90,6 @@ export const StatusCards = () => {
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-bear" />
               <span className="text-[10px] font-bold">4L</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-              <span className="text-[10px] font-bold">2B</span>
             </div>
           </div>
         </div>

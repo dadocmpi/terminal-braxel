@@ -9,12 +9,9 @@ import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SignalHistory } from '../components/SignalHistory';
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { Asset } from '../types/trading';
-import { Lock } from 'lucide-react';
 
 const DashboardContent = () => {
   const { activeAssets, currentSession } = useTrading();
-  const allAssets: Asset[] = ['EURUSD', 'GBPUSD', 'XAUUSD', 'USDJPY', 'USDCAD', 'AUDUSD', 'GBPJPY', 'EURGBP'];
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
@@ -32,7 +29,7 @@ const DashboardContent = () => {
                 <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
                   Session Terminal: <span className="text-primary">{currentSession}</span>
                 </h2>
-                <p className="text-[8px] text-muted-foreground mt-1">Apenas ativos da sessão atual estão liberados para operação.</p>
+                <p className="text-[8px] text-muted-foreground mt-1">Monitoramento exclusivo dos ativos da sessão atual.</p>
               </div>
               <div className="flex gap-2">
                 <div className="w-2 h-2 rounded-full bg-bull animate-pulse" />
@@ -41,21 +38,17 @@ const DashboardContent = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allAssets.map(asset => {
-                const isActive = activeAssets.includes(asset);
-                return (
-                  <div key={asset} className="relative">
-                    {!isActive && (
-                      <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-[2px] flex flex-col items-center justify-center border border-border/50 rounded-lg">
-                        <Lock className="w-6 h-6 text-muted-foreground/50 mb-2" />
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Manutenção</span>
-                        <span className="text-[8px] text-muted-foreground/70 mt-1">Fora da Sessão {currentSession}</span>
-                      </div>
-                    )}
-                    <MiniChart asset={asset} />
-                  </div>
-                );
-              })}
+              {activeAssets.map(asset => (
+                <div key={asset} className="relative">
+                  <MiniChart asset={asset} />
+                </div>
+              ))}
+              {activeAssets.length === 0 && (
+                <div className="col-span-full h-[400px] flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl bg-secondary/5">
+                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Market is currently closed</p>
+                  <p className="text-[10px] text-muted-foreground/50 mt-2">Waiting for Sydney Open...</p>
+                </div>
+              )}
             </div>
           </div>
 
