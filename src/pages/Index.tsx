@@ -3,6 +3,7 @@ import { useTrading, TradingProvider } from '../contexts/TradingContext';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { StatusCards } from '../components/StatusCards';
 import { ActiveSignal } from '../components/ActiveSignal';
+import { WeeklyPerformance } from '../components/WeeklyPerformance';
 import { MiniChart } from '../components/MiniChart';
 import { MarketNews } from '../components/MarketNews';
 import { SessionTimelineBar } from '../components/SessionTimelineBar';
@@ -20,6 +21,7 @@ const DashboardContent = () => {
       <main className="w-full">
         <StatusCards />
         <ActiveSignal />
+        <WeeklyPerformance />
 
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
           {/* Left: Multi-Chart Grid (3 Columns) */}
