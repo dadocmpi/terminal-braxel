@@ -11,11 +11,11 @@ export const DashboardHeader = () => {
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/90 backdrop-blur-xl px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-10">
         <div className="flex items-center gap-4">
-          <div className="w-9 h-9 flex items-center justify-center">
+          <div className="w-10 h-10 flex items-center justify-center">
             <img 
-              src="dyad-media://media/cozy-beaver-jump/.dyad/media/b2eee0c01707592ac5eed94cf5b9ed19.png" 
+              src="dyad-media://media/cozy-beaver-jump/.dyad/media/ff0794c7e0c25ed8a5bd8a9b13b94887.png" 
               alt="Braxel Logo" 
-              className="w-full h-full object-contain brightness-125"
+              className="w-full h-full object-contain brightness-150 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
             />
           </div>
           <div>
