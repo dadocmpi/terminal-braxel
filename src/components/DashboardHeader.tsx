@@ -8,19 +8,18 @@ export const DashboardHeader = () => {
   const { isLoading, currentSession } = useTrading();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/90 backdrop-blur-xl px-6 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/90 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-10">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 flex items-center justify-center">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 flex items-center justify-center">
             <img 
               src="dyad-media://media/cozy-beaver-jump/.dyad/media/ff0794c7e0c25ed8a5bd8a9b13b94887.png" 
               alt="Braxel Logo" 
-              className="w-full h-full object-contain brightness-150 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+              className="w-full h-full object-contain brightness-150 drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]"
             />
           </div>
           <div>
-            <h1 className="text-base font-black tracking-tighter leading-none text-white">BRAXEL MARKETS</h1>
-            <p className="text-[9px] text-primary uppercase tracking-[0.4em] mt-1 font-bold">Institutional Algorithm</p>
+            <h1 className="text-xl font-black tracking-tighter leading-none text-white">BRAXEL MARKETS</h1>
           </div>
         </div>
 

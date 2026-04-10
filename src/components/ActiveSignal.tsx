@@ -11,7 +11,7 @@ export const ActiveSignal = () => {
   if (!signal) return (
     <div className="p-12 text-center border-b border-border/50 bg-secondary/5">
       <p className="text-muted-foreground font-mono text-xs animate-pulse uppercase tracking-widest">
-        SCANNING INSTITUTIONAL FLOW... WAITING FOR BANK MANIPULATION
+        SCANNING INSTITUTIONAL FLOW...
       </p>
     </div>
   );
