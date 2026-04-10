@@ -4,37 +4,37 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
 
-    --card: 222 47% 6%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 2%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222 47% 5%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 2%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 185 80% 50%;
-    --primary-foreground: 222 47% 4%;
+    --primary: 45 93% 47%; /* Dourado Braxel */
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 222 20% 12%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 7%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 222 20% 10%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 5%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 38 95% 55%;
-    --accent-foreground: 222 47% 4%;
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 222 20% 15%;
-    --input: 222 20% 15%;
-    --ring: 185 80% 50%;
+    --border: 0 0% 10%;
+    --input: 0 0% 10%;
+    --ring: 45 93% 47%;
 
-    --radius: 0.2rem;
+    --radius: 0.1rem;
 
-    /* Trading-specific tokens (format: H S L) */
+    /* Trading-specific tokens */
     --bull: 142 70% 45%;
     --bear: 0 84% 60%;
   }
@@ -49,19 +49,16 @@
     background-image: 
       linear-gradient(to right, rgba(255,255,255,0.01) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(255,255,255,0.01) 1px, transparent 1px);
-    background-size: 30px 30px;
+    background-size: 40px 40px;
   }
 }
 
 @layer components {
   .terminal-card {
-    @apply bg-[#0a0d12] border-[#1e232d] rounded-sm;
+    @apply bg-[#050505] border-[#111111] rounded-none;
   }
 
-  .price-box-entry { @apply bg-secondary/50 border-l-4 border-primary; }
-  .price-box-sl { @apply bg-destructive/10 border-l-4 border-destructive; }
-  .price-box-tp { @apply bg-bull/10 border-l-4 border-bull; }
-
-  .glow-text-bull { text-shadow: 0 0 10px hsla(var(--bull), 0.5); }
-  .glow-text-bear { text-shadow: 0 0 10px hsla(var(--bear), 0.5); }
+  .glow-text-gold { text-shadow: 0 0 15px hsla(45, 93%, 47%, 0.3); }
+  .glow-text-bull { text-shadow: 0 0 10px hsla(var(--bull), 0.4); }
+  .glow-text-bear { text-shadow: 0 0 10px hsla(var(--bear), 0.4); }
 }
