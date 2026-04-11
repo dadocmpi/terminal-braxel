@@ -10,12 +10,31 @@ import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SignalHistory } from '../components/SignalHistory';
 import { MadeWithDyad } from "@/components/made-with-dyad";
+import { Coffee, Lock } from 'lucide-react';
+
+const MarketClosedOverlay = () => (
+  <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
+    <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-8 border border-primary/20">
+      <Coffee className="w-12 h-12 text-primary animate-bounce" />
+    </div>
+    <h2 className="text-4xl font-black tracking-tighter text-white mb-4 uppercase">Mercado Fechado</h2>
+    <p className="text-muted-foreground max-w-md font-mono text-sm leading-relaxed uppercase tracking-widest">
+      O Braxel Bot está em modo de descanso. Os mercados de Forex e Metais estão fechados durante o final de semana.
+    </p>
+    <div className="mt-10 flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-none">
+      <Lock className="w-4 h-4 text-primary" />
+      <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Retornamos Domingo às 21:00 UTC</span>
+    </div>
+  </div>
+);
 
 const DashboardContent = () => {
-  const { activeAssets, currentSession } = useTrading();
+  const { activeAssets, currentSession, isMarketOpen } = useTrading();
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+      {!isMarketOpen && <MarketClosedOverlay />}
+      
       <DashboardHeader />
       
       <main className="w-full">
@@ -24,7 +43,6 @@ const DashboardContent = () => {
         <WeeklyPerformance />
 
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
-          {/* Left: Terminal de Gráficos em 3 Colunas (I I I) */}
           <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
             <div className="p-4 border-b border-border/50 flex items-center justify-between bg-secondary/5">
               <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
@@ -36,7 +54,6 @@ const DashboardContent = () => {
               </div>
             </div>
             
-            {/* Grid forçado em 3 colunas para o visual I I I */}
             <div className="grid grid-cols-3 gap-0">
               {activeAssets.slice(0, 3).map((asset, index) => (
                 <div 
@@ -46,15 +63,9 @@ const DashboardContent = () => {
                   <MiniChart asset={asset} />
                 </div>
               ))}
-              {activeAssets.length === 0 && (
-                <div className="col-span-3 h-[700px] flex flex-col items-center justify-center bg-secondary/5">
-                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Market is currently closed</p>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Right: News & Activity */}
           <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5">
             <div className="p-6 border-b border-border/50">
               <MarketNews />
