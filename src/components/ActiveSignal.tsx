@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, MousePointer2 } from 'lucide-react';
 
 export const ActiveSignal = () => {
-  const { activeSignal } = useTrading();
+  const { activeSignal, premiumPct } = useTrading();
   const signal = activeSignal;
 
   if (!signal) return (
@@ -17,6 +17,8 @@ export const ActiveSignal = () => {
   );
 
   const isShort = signal.direction === 'SELL';
+  // Validação lógica: Buy deve ser em Discount (<50), Sell deve ser em Premium (>50)
+  const isPdAligned = isShort ? premiumPct > 50 : premiumPct < 50;
 
   return (
     <Card className={`bg-black border-x-0 border-t-0 border-b-4 rounded-none overflow-hidden ${isShort ? 'border-b-bear' : 'border-b-bull'}`}>
@@ -103,7 +105,7 @@ export const ActiveSignal = () => {
             <CheckItem label="HTF Structure" checked={signal.checklist.htf_aligned} />
             <CheckItem label="Liquidity Swept" checked={signal.checklist.zone_touched} />
             <CheckItem label="Order Flow" checked={signal.checklist.of_confirmed} />
-            <CheckItem label="M1 Confirmation" checked={signal.checklist.m1_candle} />
+            <CheckItem label="P/D Matrix OK" checked={isPdAligned} />
           </div>
         </div>
       </div>
