@@ -1,25 +1,43 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, ISeriesApi } from 'lightweight-charts';
 import { Asset, Candle } from '../types/trading';
-import { generateMockCandles } from '../data/mockData';
+
+const API_KEY = 'demo';
 
 export const MiniChart = ({ asset }: { asset: Asset }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const [candles, setCandles] = useState<Candle[]>([]);
   const [currentPrice, setCurrentPrice] = useState(0);
+  const [status, setStatus] = useState<'loading' | 'live' | 'error'>('loading');
 
-  // Carga inicial
-  useEffect(() => {
-    const basePrice = asset === 'XAUUSD' ? 2345.50 : asset === 'USDJPY' || asset === 'GBPJPY' ? 154.20 : 1.08540;
-    const initialData = generateMockCandles(100, basePrice);
-    setCandles(initialData);
-    setCurrentPrice(initialData[initialData.length - 1].close);
-  }, [asset]);
+  const fetchChartData = async () => {
+    try {
+      const symbol = asset === 'XAUUSD' ? 'XAU/USD' : asset.slice(0,3) + '/' + asset.slice(3);
+      const response = await fetch(
+        `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=50&apikey=${API_KEY}`
+      );
+      const data = await response.json();
+      
+      if (data.values && seriesRef.current) {
+        const formatted = data.values.map((v: any) => ({
+          time: new Date(v.datetime).getTime() / 1000,
+          open: parseFloat(v.open),
+          high: parseFloat(v.high),
+          low: parseFloat(v.low),
+          close: parseFloat(v.close)
+        })).reverse();
 
-  // Setup do Gráfico
+        seriesRef.current.setData(formatted);
+        setCurrentPrice(formatted[formatted.length - 1].close);
+        setStatus('live');
+      }
+    } catch (e) {
+      setStatus('error');
+    }
+  };
+
   useEffect(() => {
-    if (!chartContainerRef.current || candles.length === 0) return;
+    if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -29,25 +47,11 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         textColor: '#64748b',
         fontSize: 10,
       },
-      grid: {
-        vertLines: { visible: false },
-        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
-      },
-      timeScale: { 
-        visible: false,
-        borderVisible: false,
-      },
-      rightPriceScale: { 
-        borderVisible: false, 
-        scaleMargins: { top: 0.1, bottom: 0.1 },
-        alignLabels: true,
-      },
+      grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255, 255, 255, 0.03)' } },
+      timeScale: { visible: false },
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.1 } },
       handleScroll: false,
       handleScale: false,
-      crosshair: {
-        vertLine: { visible: false },
-        horzLine: { visible: false },
-      },
     });
 
     const series = chart.addCandlestickSeries({
@@ -58,68 +62,38 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
       wickDownColor: '#ef4444',
     });
 
-    series.setData(candles as any);
     seriesRef.current = series;
+    fetchChartData();
 
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Simulação de Ticks (Movimento do preço)
-    const tickInterval = setInterval(() => {
-      if (!seriesRef.current) return;
-
-      setCandles(prev => {
-        const lastCandle = { ...prev[prev.length - 1] };
-        const change = (Math.random() - 0.5) * (lastCandle.close * 0.0001);
-        
-        lastCandle.close += change;
-        lastCandle.high = Math.max(lastCandle.high, lastCandle.close);
-        lastCandle.low = Math.min(lastCandle.low, lastCandle.close);
-        
-        seriesRef.current?.update(lastCandle as any);
-        setCurrentPrice(lastCandle.close);
-        
-        return [...prev.slice(0, -1), lastCandle];
-      });
-    }, 1000);
-
+    const interval = setInterval(fetchChartData, 60000);
     return () => {
-      window.removeEventListener('resize', handleResize);
-      clearInterval(tickInterval);
+      clearInterval(interval);
       chart.remove();
     };
-  }, [candles.length === 0]);
+  }, [asset]);
 
   return (
     <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02]">
       <div className="p-4 flex justify-between items-center border-b border-white/5">
         <div className="flex items-center gap-3">
           <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">{asset}</span>
-          <span className="text-[8px] font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded-none border border-white/10">M1 LIVE</span>
+          <span className={`text-[8px] font-mono px-2 py-0.5 rounded-none border ${status === 'live' ? 'text-bull border-bull/20 bg-bull/5' : 'text-muted-foreground border-white/10 bg-white/5'}`}>
+            {status === 'live' ? 'REAL-TIME' : 'CONNECTING...'}
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-mono font-bold text-primary tabular-nums">
-            {currentPrice.toFixed(asset.includes('JPY') || asset === 'XAUUSD' ? 2 : 5)}
+            {currentPrice > 0 ? currentPrice.toFixed(asset.includes('JPY') || asset === 'XAUUSD' ? 2 : 5) : '---'}
           </span>
-          <div className="w-1 h-1 rounded-full bg-bull animate-pulse" />
+          <div className={`w-1 h-1 rounded-full ${status === 'live' ? 'bg-bull animate-pulse' : 'bg-muted'}`} />
         </div>
       </div>
       
       <div ref={chartContainerRef} className="w-full h-[650px]" />
       
       <div className="p-3 bg-black/40 flex justify-between items-center border-t border-white/5">
-        <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Institutional Matrix v2.0</span>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-1">
-            <span className="text-[8px] text-muted-foreground">VOL:</span>
-            <span className="text-[8px] font-mono text-white">HIGH</span>
-          </div>
-        </div>
+        <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Twelve Data API Feed</span>
+        <span className="text-[8px] font-mono text-white/40">LATENCY: LOW</span>
       </div>
     </div>
   );

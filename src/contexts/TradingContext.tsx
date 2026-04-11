@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS } from '../types/trading';
-import { generateMockCandles, analyzeWSBot } from '../data/mockData';
+import { analyzeWSBot } from '../data/mockData';
 import { mockSignalsData } from '../data/signalsData';
 import { playAlertSound } from '../utils/audio';
+
+// NOTA: Substitua 'demo' pela sua API Key da Twelve Data para evitar limites
+const API_KEY = 'demo'; 
 
 interface TradingContextType {
   asset: Asset;
@@ -36,14 +39,11 @@ const getMarketSession = (): MarketSession => {
 
 const checkIsMarketOpen = () => {
   const now = new Date();
-  const day = now.getUTCDay(); // 0 = Domingo, 6 = Sábado
+  const day = now.getUTCDay();
   const hour = now.getUTCHours();
-
-  // Mercado fecha Sexta às 21:00 UTC e abre Domingo às 21:00 UTC
-  if (day === 6) return false; // Sábado fechado
-  if (day === 5 && hour >= 21) return false; // Sexta noite fechado
-  if (day === 0 && hour < 21) return false; // Domingo manhã fechado
-  
+  if (day === 6) return false;
+  if (day === 5 && hour >= 21) return false;
+  if (day === 0 && hour < 21) return false;
   return true;
 };
 
@@ -57,67 +57,58 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [analysis, setAnalysis] = useState<any>({ obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Atualiza o estado do mercado e sessão
+  const fetchRealData = async () => {
+    if (!isMarketOpen) return;
+    
+    try {
+      const symbol = asset === 'XAUUSD' ? 'XAU/USD' : asset.slice(0,3) + '/' + asset.slice(3);
+      const response = await fetch(
+        `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${API_KEY}`
+      );
+      const data = await response.json();
+      
+      if (data.values) {
+        const formattedCandles: Candle[] = data.values.map((v: any) => ({
+          time: new Date(v.datetime).getTime() / 1000,
+          open: parseFloat(v.open),
+          high: parseFloat(v.high),
+          low: parseFloat(v.low),
+          close: parseFloat(v.close),
+          volume: parseFloat(v.volume || '0')
+        })).reverse();
+
+        setCandles(formattedCandles);
+        const result = analyzeWSBot(formattedCandles, asset, timeframe);
+        setAnalysis(result);
+        
+        if (result.activeSignal && !analysis.activeSignal) {
+          playAlertSound('success');
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados reais:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const interval = setInterval(() => {
+    fetchRealData();
+    const interval = setInterval(fetchRealData, 60000); // Atualiza a cada minuto (limite da API free)
+    return () => clearInterval(interval);
+  }, [asset, timeframe, isMarketOpen]);
+
+  useEffect(() => {
+    const sessionInterval = setInterval(() => {
       setIsMarketOpen(checkIsMarketOpen());
       const session = getMarketSession();
       if (session !== currentSession) {
         setCurrentSession(session);
-        const newAssets = SESSION_ASSETS[session];
-        setActiveAssets(newAssets);
+        setActiveAssets(SESSION_ASSETS[session]);
       }
     }, 10000);
-    return () => clearInterval(interval);
+    return () => clearInterval(sessionInterval);
   }, [currentSession]);
-
-  // Carregamento inicial de dados
-  useEffect(() => {
-    if (!isMarketOpen) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      const basePrice = asset === 'XAUUSD' ? 2345.50 : asset === 'USDJPY' || asset === 'GBPJPY' ? 154.20 : 1.08540;
-      const initialCandles = generateMockCandles(200, basePrice);
-      setCandles(initialCandles);
-      setAnalysis(analyzeWSBot(initialCandles, asset, timeframe));
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [asset, timeframe, isMarketOpen]);
-
-  // Simulação de Ticks em Tempo Real (Atualiza o preço a cada segundo)
-  useEffect(() => {
-    if (!isMarketOpen || candles.length === 0 || isLoading) return;
-
-    const tickInterval = setInterval(() => {
-      setCandles(prev => {
-        const last = { ...prev[prev.length - 1] };
-        const change = (Math.random() - 0.5) * (last.close * 0.0001);
-        last.close += change;
-        last.high = Math.max(last.high, last.close);
-        last.low = Math.min(last.low, last.close);
-        
-        const newCandles = [...prev.slice(0, -1), last];
-        
-        // Re-analisar a cada 5 ticks para performance
-        if (Math.random() > 0.8) {
-          const result = analyzeWSBot(newCandles, asset, timeframe);
-          setAnalysis(result);
-          if (result.activeSignal && !analysis.activeSignal) {
-            playAlertSound('success');
-          }
-        }
-        
-        return newCandles;
-      });
-    }, 1000);
-
-    return () => clearInterval(tickInterval);
-  }, [isMarketOpen, candles.length, isLoading, asset, timeframe]);
 
   return (
     <TradingContext.Provider value={{
