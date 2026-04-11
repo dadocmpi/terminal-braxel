@@ -17,7 +17,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 280, // Aumentado de 180 para 280
+      height: 320,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -27,7 +27,10 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         vertLines: { visible: false },
         horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
       },
-      timeScale: { visible: false },
+      timeScale: { 
+        visible: false,
+        borderVisible: false,
+      },
       rightPriceScale: { 
         borderVisible: false, 
         scaleMargins: { top: 0.2, bottom: 0.2 },
@@ -35,6 +38,10 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
       },
       handleScroll: false,
       handleScale: false,
+      crosshair: {
+        vertLine: { visible: false },
+        horzLine: { visible: false },
+      },
     });
 
     const series = chart.addCandlestickSeries({
@@ -47,25 +54,40 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     series.setData(candles as any);
 
-    return () => chart.remove();
+    const handleResize = () => {
+      if (chartContainerRef.current) {
+        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+    };
   }, [candles]);
 
   return (
-    <div className="bg-card/30 border border-border/50 rounded-xl overflow-hidden hover:border-primary/50 transition-all group shadow-2xl">
-      <div className="p-3 border-b border-border/50 flex justify-between items-center bg-secondary/10">
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          <span className="text-xs font-black tracking-tighter group-hover:text-primary transition-colors">{asset}</span>
+    <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02]">
+      <div className="p-4 flex justify-between items-center border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">{asset}</span>
+          <span className="text-[8px] font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded-none border border-white/10">M1 REALTIME</span>
         </div>
-        <span className="text-[8px] font-mono text-muted-foreground bg-background px-2 py-0.5 rounded border border-border/50">M1 LIVE</span>
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-1 rounded-full bg-bull" />
+          <span className="text-[8px] font-bold text-bull uppercase">Bullish Flow</span>
+        </div>
       </div>
-      <div ref={chartContainerRef} className="w-full h-[280px]" />
-      <div className="p-2 bg-secondary/5 border-t border-border/30 flex justify-between items-center">
-        <span className="text-[8px] text-muted-foreground uppercase font-bold">Institutional Flow</span>
-        <div className="flex gap-1">
-          <div className="w-1 h-1 rounded-full bg-bull" />
-          <div className="w-1 h-1 rounded-full bg-bull" />
-          <div className="w-1 h-1 rounded-full bg-secondary" />
+      <div ref={chartContainerRef} className="w-full h-[320px]" />
+      <div className="p-3 bg-black/40 flex justify-between items-center border-t border-white/5">
+        <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Institutional Matrix v2.0</span>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-1">
+            <span className="text-[8px] text-muted-foreground">VOL:</span>
+            <span className="text-[8px] font-mono text-white">HIGH</span>
+          </div>
         </div>
       </div>
     </div>

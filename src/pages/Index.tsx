@@ -24,31 +24,30 @@ const DashboardContent = () => {
         <WeeklyPerformance />
 
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
-          {/* Left: Multi-Chart Grid (3 Columns) */}
-          <div className="col-span-12 xl:col-span-9 p-8 border-r border-border/50 bg-gradient-to-b from-transparent to-secondary/5">
-            <div className="flex items-center justify-between mb-8">
+          {/* Left: Multi-Chart Grid - Removido o padding excessivo para encostar na linha */}
+          <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-gradient-to-b from-transparent to-secondary/5">
+            <div className="p-6 border-b border-border/50 flex items-center justify-between bg-black/20">
               <div className="flex flex-col">
                 <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                  Session Terminal: <span className="text-primary">{currentSession}</span>
+                  Terminal de Monitoramento: <span className="text-primary">{currentSession}</span>
                 </h2>
-                <p className="text-[8px] text-muted-foreground mt-1">Monitoramento exclusivo dos ativos da sessão atual.</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <div className="w-2 h-2 rounded-full bg-bull animate-pulse" />
-                <span className="text-[8px] font-bold text-bull uppercase">Live Scanning</span>
+                <span className="text-[8px] font-bold text-bull uppercase tracking-widest">Live Scanning</span>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Grid ajustado para 2 colunas para os gráficos ficarem maiores e "puxarem" até a linha */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
               {activeAssets.map(asset => (
-                <div key={asset} className="relative">
+                <div key={asset} className="border-b border-r border-border/50 last:border-r-0">
                   <MiniChart asset={asset} />
                 </div>
               ))}
               {activeAssets.length === 0 && (
-                <div className="col-span-full h-[500px] flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl bg-secondary/5">
+                <div className="col-span-full h-[500px] flex flex-col items-center justify-center bg-secondary/5">
                   <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Market is currently closed</p>
-                  <p className="text-[10px] text-muted-foreground/50 mt-2">Waiting for Sydney Open...</p>
                 </div>
               )}
             </div>
