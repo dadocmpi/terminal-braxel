@@ -17,7 +17,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 500, // Aumentado para 500px para ser 'alto'
+      height: 500,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -46,22 +46,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const series = chart.addCandlestickSeries({
       upColor: '#22c55e',
-      downthink
-The previous response was cut off in the middle of a `<dyad-write>` block for `src/components/MiniChart.tsx`. I need to complete that file and then finish the response according to the guidelines.
-
-Looking at the previous output:
-```tsx
-    const series = chart.addCandlestickSeries({
-      upColor: '#22c55e',
-      down
-```
-I need to complete the `downColor` property and the rest of the file.
-
-Plan:
-1. Complete `src/components/MiniChart.tsx`.
-2. Add the concise summary.
-3. Add the chat summary.
-4. Ensure no markdown code blocks are used.Color: '#ef4444',
+      downColor: '#ef4444',
       borderVisible: false,
       wickUpColor: '#22c55e',
       wickDownColor: '#ef4444',
