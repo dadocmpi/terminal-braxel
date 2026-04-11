@@ -1,23 +1,29 @@
-import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
+import React, { useEffect, useRef, useState } from 'react';
+import { createChart, ColorType, ISeriesApi } from 'lightweight-charts';
 import { Asset, Candle } from '../types/trading';
 import { generateMockCandles } from '../data/mockData';
 
 export const MiniChart = ({ asset }: { asset: Asset }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [candles, setCandles] = React.useState<Candle[]>([]);
+  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const [candles, setCandles] = useState<Candle[]>([]);
+  const [currentPrice, setCurrentPrice] = useState(0);
 
+  // Carga inicial
   useEffect(() => {
     const basePrice = asset === 'XAUUSD' ? 2345.50 : asset === 'USDJPY' || asset === 'GBPJPY' ? 154.20 : 1.08540;
-    setCandles(generateMockCandles(60, basePrice));
+    const initialData = generateMockCandles(100, basePrice);
+    setCandles(initialData);
+    setCurrentPrice(initialData[initialData.length - 1].close);
   }, [asset]);
 
+  // Setup do Gráfico
   useEffect(() => {
     if (!chartContainerRef.current || candles.length === 0) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 650, // Altura aumentada para puxar para baixo
+      height: 650,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -53,6 +59,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
     });
 
     series.setData(candles as any);
+    seriesRef.current = series;
 
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -62,25 +69,49 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     window.addEventListener('resize', handleResize);
 
+    // Simulação de Ticks (Movimento do preço)
+    const tickInterval = setInterval(() => {
+      if (!seriesRef.current) return;
+
+      setCandles(prev => {
+        const lastCandle = { ...prev[prev.length - 1] };
+        const change = (Math.random() - 0.5) * (lastCandle.close * 0.0001);
+        
+        lastCandle.close += change;
+        lastCandle.high = Math.max(lastCandle.high, lastCandle.close);
+        lastCandle.low = Math.min(lastCandle.low, lastCandle.close);
+        
+        seriesRef.current?.update(lastCandle as any);
+        setCurrentPrice(lastCandle.close);
+        
+        return [...prev.slice(0, -1), lastCandle];
+      });
+    }, 1000);
+
     return () => {
       window.removeEventListener('resize', handleResize);
+      clearInterval(tickInterval);
       chart.remove();
     };
-  }, [candles]);
+  }, [candles.length === 0]);
 
   return (
     <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02]">
       <div className="p-4 flex justify-between items-center border-b border-white/5">
         <div className="flex items-center gap-3">
           <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">{asset}</span>
-          <span className="text-[8px] font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded-none border border-white/10">M1 REALTIME</span>
+          <span className="text-[8px] font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded-none border border-white/10">M1 LIVE</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-bull" />
-          <span className="text-[8px] font-bold text-bull uppercase">Bullish Flow</span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono font-bold text-primary tabular-nums">
+            {currentPrice.toFixed(asset.includes('JPY') || asset === 'XAUUSD' ? 2 : 5)}
+          </span>
+          <div className="w-1 h-1 rounded-full bg-bull animate-pulse" />
         </div>
       </div>
+      
       <div ref={chartContainerRef} className="w-full h-[650px]" />
+      
       <div className="p-3 bg-black/40 flex justify-between items-center border-t border-white/5">
         <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Institutional Matrix v2.0</span>
         <div className="flex gap-4">
