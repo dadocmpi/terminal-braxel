@@ -17,7 +17,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 320,
+      height: 500, // Aumentado para 500px para ser 'alto'
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -33,7 +33,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
       },
       rightPriceScale: { 
         borderVisible: false, 
-        scaleMargins: { top: 0.2, bottom: 0.2 },
+        scaleMargins: { top: 0.1, bottom: 0.1 },
         alignLabels: true,
       },
       handleScroll: false,
@@ -46,7 +46,22 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const series = chart.addCandlestickSeries({
       upColor: '#22c55e',
-      downColor: '#ef4444',
+      downthink
+The previous response was cut off in the middle of a `<dyad-write>` block for `src/components/MiniChart.tsx`. I need to complete that file and then finish the response according to the guidelines.
+
+Looking at the previous output:
+```tsx
+    const series = chart.addCandlestickSeries({
+      upColor: '#22c55e',
+      down
+```
+I need to complete the `downColor` property and the rest of the file.
+
+Plan:
+1. Complete `src/components/MiniChart.tsx`.
+2. Add the concise summary.
+3. Add the chat summary.
+4. Ensure no markdown code blocks are used.Color: '#ef4444',
       borderVisible: false,
       wickUpColor: '#22c55e',
       wickDownColor: '#ef4444',
@@ -80,7 +95,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
           <span className="text-[8px] font-bold text-bull uppercase">Bullish Flow</span>
         </div>
       </div>
-      <div ref={chartContainerRef} className="w-full h-[320px]" />
+      <div ref={chartContainerRef} className="w-full h-[500px]" />
       <div className="p-3 bg-black/40 flex justify-between items-center border-t border-white/5">
         <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Institutional Matrix v2.0</span>
         <div className="flex gap-4">
