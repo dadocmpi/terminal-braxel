@@ -17,7 +17,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 500,
+      height: 650, // Altura aumentada para puxar para baixo
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -80,7 +80,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
           <span className="text-[8px] font-bold text-bull uppercase">Bullish Flow</span>
         </div>
       </div>
-      <div ref={chartContainerRef} className="w-full h-[500px]" />
+      <div ref={chartContainerRef} className="w-full h-[650px]" />
       <div className="p-3 bg-black/40 flex justify-between items-center border-t border-white/5">
         <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Institutional Matrix v2.0</span>
         <div className="flex gap-4">
