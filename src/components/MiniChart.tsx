@@ -12,7 +12,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
   const fetchChartData = async () => {
     try {
-      const symbol = asset === 'XAUUSD' ? 'XAU/USD' : asset.slice(0,3) + '/' + asset.slice(3);
+      const symbol = asset.slice(0,3) + '/' + asset.slice(3);
       const response = await fetch(
         `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=50&apikey=${API_KEY}`
       );
@@ -31,7 +31,6 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         setCurrentPrice(formatted[formatted.length - 1].close);
         setStatus('live');
       } else if (data.status === 'error') {
-        // Se der erro de rate limit, tentamos novamente em 10 segundos
         setTimeout(fetchChartData, 10000);
       }
     } catch (e) {
@@ -56,7 +55,6 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.1 } },
       handleScroll: false,
       handleScale: false,
-      // Garantindo que não haja marca d'água via opções também
       watermark: { visible: false }
     } as any);
 
@@ -89,7 +87,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-mono font-bold text-primary tabular-nums">
-            {currentPrice > 0 ? currentPrice.toFixed(asset.includes('JPY') || asset === 'XAUUSD' ? 2 : 5) : '---'}
+            {currentPrice > 0 ? currentPrice.toFixed(asset.includes('JPY') ? 2 : 5) : '---'}
           </span>
           <div className={`w-1 h-1 rounded-full ${status === 'live' ? 'bg-bull animate-pulse' : 'bg-muted'}`} />
         </div>

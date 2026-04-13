@@ -1,4 +1,4 @@
-export type Asset = 'EURUSD' | 'GBPUSD' | 'USDCAD' | 'XAUUSD' | 'USDJPY' | 'AUDUSD' | 'GBPJPY' | 'EURGBP' | 'NZDUSD';
+export type Asset = 'EURUSD' | 'GBPUSD' | 'USDCAD' | 'USDJPY' | 'AUDUSD' | 'GBPJPY' | 'EURGBP' | 'NZDUSD';
 export type Timeframe = 'D1' | 'H4' | 'H1' | 'M15' | 'M5' | 'M1';
 export type BiasDirection = 'BUY' | 'SELL' | 'NEUTRAL';
 export type MarketSession = 'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CLOSE';
@@ -7,8 +7,8 @@ export const SESSION_ASSETS: Record<MarketSession, Asset[]> = {
   SYDNEY: ['AUDUSD', 'USDJPY', 'NZDUSD'],
   TOKYO: ['USDJPY', 'GBPJPY', 'AUDUSD'],
   LONDON: ['GBPUSD', 'EURUSD', 'GBPJPY'],
-  NEW_YORK: ['EURUSD', 'GBPUSD', 'XAUUSD'],
-  CLOSE: ['EURUSD', 'GBPUSD', 'XAUUSD'] // Fallback assets for closed market
+  NEW_YORK: ['EURUSD', 'GBPUSD', 'USDCAD'],
+  CLOSE: ['EURUSD', 'GBPUSD', 'USDCAD'] // Fallback assets for closed market
 };
 
 export interface Candle {

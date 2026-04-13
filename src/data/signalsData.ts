@@ -44,7 +44,7 @@ export const mockSignalsData: SignalsData = {
   },
   signals: [
     { id: '1', time: '2024-05-20T10:00:00Z', asset: 'GBPUSD', direction: 'SELL', zone: 'H1 OB', entry: 1.27450, sl: 1.27600, tp1: 1.27100, rr: 2.3, confidence: 82, status: 'WIN', pips: 35 },
-    { id: '2', time: '2024-05-19T15:30:00Z', asset: 'XAUUSD', direction: 'BUY', zone: 'M15 FVG', entry: 2345.50, sl: 2340.00, tp1: 2355.00, rr: 1.7, confidence: 76, status: 'LOSS', pips: -55 }
+    { id: '2', time: '2024-05-19T15:30:00Z', asset: 'USDCAD', direction: 'BUY', zone: 'M15 FVG', entry: 1.36550, sl: 1.36400, tp1: 1.36850, rr: 1.7, confidence: 76, status: 'LOSS', pips: -15 }
   ],
   market_context: {
     pairs: [

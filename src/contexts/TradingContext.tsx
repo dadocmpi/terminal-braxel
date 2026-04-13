@@ -4,7 +4,7 @@ import { analyzeWSBot } from '../data/mockData';
 import { mockSignalsData } from '../data/signalsData';
 import { playAlertSound } from '../utils/audio';
 
-// NOTA: Substitua 'demo' pela sua API Key da Twelve Data para evitar limites
+// NOTE: Replace 'demo' with your Twelve Data API Key to avoid limits
 const API_KEY = 'demo'; 
 
 interface TradingContextType {
@@ -61,7 +61,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!isMarketOpen) return;
     
     try {
-      const symbol = asset === 'XAUUSD' ? 'XAU/USD' : asset.slice(0,3) + '/' + asset.slice(3);
+      const symbol = asset.slice(0,3) + '/' + asset.slice(3);
       const response = await fetch(
         `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${API_KEY}`
       );
@@ -86,7 +86,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
     } catch (error) {
-      console.error("Erro ao buscar dados reais:", error);
+      console.error("Error fetching real data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +94,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     fetchRealData();
-    const interval = setInterval(fetchRealData, 60000); // Atualiza a cada minuto (limite da API free)
+    const interval = setInterval(fetchRealData, 60000);
     return () => clearInterval(interval);
   }, [asset, timeframe, isMarketOpen]);
 
