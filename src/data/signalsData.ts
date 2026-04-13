@@ -57,9 +57,9 @@ export const mockSignalsData: SignalsData = {
       { asset: 'EURGBP', bias: 'BUY', premium: 10, zones: { buy: 2, sell: 0 } }
     ],
     activity_log: [
-      { id: 'l1', time: '10:45:22', type: 'signal', message: 'Novo sinal detectado: EURUSD BUY @ 1.08542' },
-      { id: 'l2', time: '10:42:10', type: 'touch', message: 'Preço tocou M15 Order Block em GBPUSD' },
-      { id: 'l3', time: '10:35:00', type: 'scan', message: 'Scanning Market: 7 pares ativos, 0.4ms latency' }
+      { id: 'l1', time: '10:45:22', type: 'signal', message: 'New signal detected: EURUSD BUY @ 1.08542' },
+      { id: 'l2', time: '10:42:10', type: 'touch', message: 'Price touched M15 Order Block on GBPUSD' },
+      { id: 'l3', time: '10:35:00', type: 'scan', message: 'Scanning Market: 7 active pairs, 0.4ms latency' }
     ]
   }
 };

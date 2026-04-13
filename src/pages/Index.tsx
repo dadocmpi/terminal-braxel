@@ -17,13 +17,13 @@ const MarketClosedOverlay = () => (
     <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-8 border border-primary/20">
       <Coffee className="w-12 h-12 text-primary animate-bounce" />
     </div>
-    <h2 className="text-4xl font-black tracking-tighter text-white mb-4 uppercase">Mercado Fechado</h2>
+    <h2 className="text-4xl font-black tracking-tighter text-white mb-4 uppercase">Market Closed</h2>
     <p className="text-muted-foreground max-w-md font-mono text-sm leading-relaxed uppercase tracking-widest">
-      O Braxel Bot está em modo de descanso. Os mercados de Forex e Metais estão fechados durante o final de semana.
+      Braxel Bot is in rest mode. Forex and Metals markets are closed during the weekend.
     </p>
     <div className="mt-10 flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-none">
       <Lock className="w-4 h-4 text-primary" />
-      <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Retornamos Domingo às 21:00 UTC</span>
+      <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Returning Sunday at 21:00 UTC</span>
     </div>
   </div>
 );
@@ -46,7 +46,7 @@ const DashboardContent = () => {
           <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
             <div className="p-4 border-b border-border/50 flex items-center justify-between bg-secondary/5">
               <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                Terminal de Monitoramento: <span className="text-primary">{currentSession}</span>
+                Monitoring Terminal: <span className="text-primary">{currentSession}</span>
               </h2>
               <div className="flex gap-2 items-center">
                 <div className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
@@ -54,11 +54,11 @@ const DashboardContent = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
               {activeAssets.slice(0, 3).map((asset, index) => (
                 <div 
                   key={asset} 
-                  className={`border-b border-border/50 ${index < 2 ? 'border-r' : ''}`}
+                  className={`border-b border-border/50 ${index < 2 ? 'md:border-r' : ''}`}
                 >
                   <MiniChart asset={asset} />
                 </div>

@@ -6,9 +6,9 @@ export type MarketSession = 'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CLOSE'
 export const SESSION_ASSETS: Record<MarketSession, Asset[]> = {
   SYDNEY: ['AUDUSD', 'USDJPY', 'NZDUSD'],
   TOKYO: ['USDJPY', 'GBPJPY', 'AUDUSD'],
-  LONDON: ['GBPUSD', 'EURGBP', 'GBPJPY'], // EURUSD REMOVIDO
+  LONDON: ['GBPUSD', 'EURUSD', 'GBPJPY'],
   NEW_YORK: ['EURUSD', 'GBPUSD', 'XAUUSD'],
-  CLOSE: []
+  CLOSE: ['EURUSD', 'GBPUSD', 'XAUUSD'] // Fallback assets for closed market
 };
 
 export interface Candle {
@@ -91,6 +91,7 @@ export interface ActiveSignal {
 export interface SignalsData {
   last_updated: string;
   active_signal: ActiveSignal | null;
+  signals: any[];
   market_context: {
     pairs: { asset: Asset; bias: BiasDirection; premium: number; zones: { buy: number; sell: number } }[];
     activity_log: { id: string; time: string; type: 'signal' | 'touch' | 'scan' | 'info' | 'warning'; message: string }[];
