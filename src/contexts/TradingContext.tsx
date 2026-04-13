@@ -1,11 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS } from '../types/trading';
-import { analyzeWSBot } from '../data/mockData';
+import { analyzeWSBot, generateMockCandles } from '../data/mockData';
 import { mockSignalsData } from '../data/signalsData';
 import { playAlertSound } from '../utils/audio';
 
-// NOTE: Replace 'demo' with your Twelve Data API Key to avoid limits
 const API_KEY = 'demo'; 
+
+interface AssetData {
+  candles: Candle[];
+  analysis: any;
+  lastUpdate: number;
+}
 
 interface TradingContextType {
   asset: Asset;
@@ -24,6 +29,7 @@ interface TradingContextType {
   currentSession: MarketSession;
   activeAssets: Asset[];
   isMarketOpen: boolean;
+  allAssetsData: Record<string, AssetData>;
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
@@ -53,22 +59,24 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession]);
   const [asset, setAsset] = useState<Asset>(activeAssets[0] || 'EURUSD');
   const [timeframe, setTimeframe] = useState<Timeframe>('M1');
-  const [candles, setCandles] = useState<Candle[]>([]);
-  const [analysis, setAnalysis] = useState<any>({ obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null });
+  const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [isLoading, setIsLoading] = useState(true);
+  
+  const fetchQueue = useRef<Asset[]>([]);
+  const isFetching = useRef(false);
 
-  const fetchRealData = async () => {
-    if (!isMarketOpen) return;
-    
+  const fetchAssetData = async (targetAsset: Asset) => {
     try {
-      const symbol = asset.slice(0,3) + '/' + asset.slice(3);
+      const symbol = targetAsset.slice(0,3) + '/' + targetAsset.slice(3);
       const response = await fetch(
         `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${API_KEY}`
       );
       const data = await response.json();
       
+      let formattedCandles: Candle[] = [];
+
       if (data.values) {
-        const formattedCandles: Candle[] = data.values.map((v: any) => ({
+        formattedCandles = data.values.map((v: any) => ({
           time: new Date(v.datetime).getTime() / 1000,
           open: parseFloat(v.open),
           high: parseFloat(v.high),
@@ -76,27 +84,62 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           close: parseFloat(v.close),
           volume: parseFloat(v.volume || '0')
         })).reverse();
+      } else {
+        // Fallback to mock data if API fails/limits
+        const basePrice = targetAsset.includes('JPY') ? 150 : 1.1;
+        formattedCandles = generateMockCandles(100, basePrice);
+      }
 
-        setCandles(formattedCandles);
-        const result = analyzeWSBot(formattedCandles, asset, timeframe);
-        setAnalysis(result);
-        
-        if (result.activeSignal && !analysis.activeSignal) {
-          playAlertSound('success');
+      const analysis = analyzeWSBot(formattedCandles, targetAsset, 'M1');
+      
+      setAllAssetsData(prev => ({
+        ...prev,
+        [targetAsset]: {
+          candles: formattedCandles,
+          analysis,
+          lastUpdate: Date.now()
         }
+      }));
+
+      if (targetAsset === asset && analysis.activeSignal) {
+        playAlertSound('success');
       }
     } catch (error) {
-      console.error("Error fetching real data:", error);
-    } finally {
-      setIsLoading(false);
+      console.error(`Error fetching ${targetAsset}:`, error);
+    }
+  };
+
+  const processQueue = async () => {
+    if (isFetching.current || fetchQueue.current.length === 0) return;
+    
+    isFetching.current = true;
+    const nextAsset = fetchQueue.current.shift();
+    
+    if (nextAsset) {
+      await fetchAssetData(nextAsset);
+      // Wait 2 seconds between requests to respect 'demo' key limits
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    isFetching.current = false;
+    if (fetchQueue.current.length > 0) {
+      processQueue();
     }
   };
 
   useEffect(() => {
-    fetchRealData();
-    const interval = setInterval(fetchRealData, 60000);
+    // Initial load for all active assets
+    fetchQueue.current = [...activeAssets];
+    processQueue().then(() => setIsLoading(false));
+
+    // Refresh interval
+    const interval = setInterval(() => {
+      fetchQueue.current = [...activeAssets];
+      processQueue();
+    }, 60000);
+
     return () => clearInterval(interval);
-  }, [asset, timeframe, isMarketOpen]);
+  }, [activeAssets]);
 
   useEffect(() => {
     const sessionInterval = setInterval(() => {
@@ -110,17 +153,24 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => clearInterval(sessionInterval);
   }, [currentSession]);
 
+  const currentData = allAssetsData[asset] || { 
+    candles: [], 
+    analysis: { obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null },
+    lastUpdate: 0 
+  };
+
   return (
     <TradingContext.Provider value={{
       asset, setAsset,
       timeframe, setTimeframe,
-      candles,
-      ...analysis,
+      candles: currentData.candles,
+      ...currentData.analysis,
       signalsData: mockSignalsData,
       isLoading,
       currentSession,
       activeAssets,
-      isMarketOpen
+      isMarketOpen,
+      allAssetsData
     }}>
       {children}
     </TradingContext.Provider>

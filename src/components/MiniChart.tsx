@@ -1,50 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType, ISeriesApi } from 'lightweight-charts';
-import { Asset, Candle } from '../types/trading';
-
-const API_KEY = 'demo';
+import { Asset } from '../types/trading';
+import { useTrading } from '../contexts/TradingContext';
 
 export const MiniChart = ({ asset }: { asset: Asset }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const [currentPrice, setCurrentPrice] = useState(0);
-  const [status, setStatus] = useState<'loading' | 'live' | 'error'>('loading');
-
-  const fetchChartData = async () => {
-    try {
-      const symbol = asset.slice(0,3) + '/' + asset.slice(3);
-      const response = await fetch(
-        `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=50&apikey=${API_KEY}`
-      );
-      const data = await response.json();
-      
-      if (data.values && seriesRef.current) {
-        const formatted = data.values.map((v: any) => ({
-          time: new Date(v.datetime).getTime() / 1000,
-          open: parseFloat(v.open),
-          high: parseFloat(v.high),
-          low: parseFloat(v.low),
-          close: parseFloat(v.close)
-        })).reverse();
-
-        seriesRef.current.setData(formatted);
-        setCurrentPrice(formatted[formatted.length - 1].close);
-        setStatus('live');
-      } else if (data.status === 'error') {
-        setTimeout(fetchChartData, 10000);
-      }
-    } catch (e) {
-      setStatus('error');
-      setTimeout(fetchChartData, 15000);
-    }
-  };
+  const chartRef = useRef<any>(null);
+  const { allAssetsData } = useTrading();
+  
+  const assetData = allAssetsData[asset];
+  const currentPrice = assetData?.candles[assetData.candles.length - 1]?.close || 0;
+  const status = assetData ? 'live' : 'loading';
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 650,
+      height: 250, // Adjusted height for better grid layout
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -67,14 +41,28 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
     });
 
     seriesRef.current = series;
-    fetchChartData();
+    chartRef.current = chart;
 
-    const interval = setInterval(fetchChartData, 60000);
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
     return () => {
-      clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [asset]);
+  }, []);
+
+  useEffect(() => {
+    if (seriesRef.current && assetData?.candles) {
+      seriesRef.current.setData(assetData.candles as any);
+      chartRef.current?.timeScale().fitContent();
+    }
+  }, [assetData]);
 
   return (
     <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02]">
@@ -82,7 +70,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         <div className="flex items-center gap-3">
           <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">{asset}</span>
           <span className={`text-[8px] font-mono px-2 py-0.5 rounded-none border ${status === 'live' ? 'text-bull border-bull/20 bg-bull/5' : 'text-muted-foreground border-white/10 bg-white/5'}`}>
-            {status === 'live' ? 'REAL-TIME' : 'CONNECTING...'}
+            {status === 'live' ? 'M1 LIVE' : 'CONNECTING...'}
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -93,11 +81,11 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         </div>
       </div>
       
-      <div ref={chartContainerRef} className="w-full h-[650px]" />
+      <div ref={chartContainerRef} className="w-full h-[250px]" />
       
       <div className="p-3 bg-black/40 flex justify-between items-center border-t border-white/5">
-        <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Twelve Data API Feed</span>
-        <span className="text-[8px] font-mono text-white/40">LATENCY: LOW</span>
+        <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Institutional Feed</span>
+        <span className="text-[8px] font-mono text-white/40">SYNC: {assetData ? 'OK' : 'WAIT'}</span>
       </div>
     </div>
   );
