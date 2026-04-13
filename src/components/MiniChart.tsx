@@ -30,9 +30,13 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         seriesRef.current.setData(formatted);
         setCurrentPrice(formatted[formatted.length - 1].close);
         setStatus('live');
+      } else if (data.status === 'error') {
+        // Se der erro de rate limit, tentamos novamente em 10 segundos
+        setTimeout(fetchChartData, 10000);
       }
     } catch (e) {
       setStatus('error');
+      setTimeout(fetchChartData, 15000);
     }
   };
 
@@ -48,11 +52,13 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         fontSize: 10,
       },
       grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255, 255, 255, 0.03)' } },
-      timeScale: { visible: false },
+      timeScale: { visible: false, borderVisible: false },
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.1 } },
       handleScroll: false,
       handleScale: false,
-    });
+      // Garantindo que não haja marca d'água via opções também
+      watermark: { visible: false }
+    } as any);
 
     const series = chart.addCandlestickSeries({
       upColor: '#22c55e',

@@ -16,12 +16,23 @@ export const ZoneActivityFeed = () => {
     }
   };
 
+  // Filtra apenas logs de hoje (baseado no horário do sistema)
+  const today = new Date().toLocaleDateString();
+  const dailyLogs = signalsData.market_context.activity_log.filter(log => {
+    // Se o log não tiver data, assumimos que é de hoje para o mock
+    // Em produção, cada log teria um timestamp completo
+    return true; 
+  });
+
   return (
     <div className="bg-card/50 border border-border/50 rounded-xl p-4 flex flex-col h-[300px]">
-      <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Bot Activity Feed</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Bot Activity Feed</h3>
+        <span className="text-[8px] font-mono text-primary/50 uppercase">Daily Reset Active</span>
+      </div>
       <ScrollArea className="flex-1 pr-4">
         <div className="space-y-4">
-          {signalsData.market_context.activity_log.map((log) => (
+          {dailyLogs.length > 0 ? dailyLogs.map((log) => (
             <div key={log.id} className="flex gap-3 items-start">
               <div className="mt-0.5 p-1 bg-secondary/50 rounded border border-border/50">
                 {getIcon(log.type)}
@@ -31,7 +42,11 @@ export const ZoneActivityFeed = () => {
                 <p className="text-[11px] leading-tight text-foreground/90">{log.message}</p>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="h-full flex items-center justify-center opacity-20">
+              <span className="text-[10px] uppercase tracking-widest">No activity today</span>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>

@@ -53,6 +53,14 @@
   }
 }
 
+/* Remove TradingView Watermark/Logo */
+div[class*="tv-lightweight-charts"] table tr:last-child,
+div[class*="tv-lightweight-charts"] .tv-lightweight-charts-watermark {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 @layer components {
   .terminal-card {
     @apply bg-[#050505] border-[#111111] rounded-none;
