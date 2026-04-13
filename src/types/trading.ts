@@ -8,7 +8,7 @@ export const SESSION_ASSETS: Record<MarketSession, Asset[]> = {
   TOKYO: ['USDJPY', 'GBPJPY', 'AUDUSD'],
   LONDON: ['GBPUSD', 'EURUSD', 'GBPJPY'],
   NEW_YORK: ['EURUSD', 'GBPUSD', 'USDCAD'],
-  CLOSE: ['EURUSD', 'GBPUSD', 'USDCAD'] // Fallback assets for closed market
+  CLOSE: ['EURUSD', 'GBPUSD', 'USDCAD']
 };
 
 export interface Candle {
@@ -76,6 +76,7 @@ export interface ActiveSignal {
   rr: number;
   confidence: number;
   type_code: 'A' | 'B' | 'C' | 'D';
+  lot_size: number; // Calculated based on $10 risk
   gate: ConfirmationGate;
   manipulation: BankManipulation;
   checklist: {
@@ -88,12 +89,20 @@ export interface ActiveSignal {
   };
 }
 
+export interface ActivityLog {
+  id: string;
+  time: string;
+  type: 'signal' | 'touch' | 'scan' | 'info' | 'warning';
+  message: string;
+  isToday: boolean;
+}
+
 export interface SignalsData {
   last_updated: string;
   active_signal: ActiveSignal | null;
   signals: any[];
   market_context: {
     pairs: { asset: Asset; bias: BiasDirection; premium: number; zones: { buy: number; sell: number } }[];
-    activity_log: { id: string; time: string; type: 'signal' | 'touch' | 'scan' | 'info' | 'warning'; message: string }[];
+    activity_log: ActivityLog[];
   };
 }

@@ -13,25 +13,22 @@ export const mockSignalsData: SignalsData = {
     tp1_pips: 30.8,
     tp2_pips: 65.8,
     rr: 2.52,
-    rr2: 5.39,
-    lot_size: 8.2,
-    session: 'LONDON',
-    zone_kind: 'ORDER BLOCK',
-    zone_tf: 'M15',
-    zone_quality: 'HIGH',
-    zone_age: 14,
-    of_bull_pct: 78,
-    entry_pattern: 'MSS + FVG',
     confidence: 88,
-    d1_bias: 'BUY',
-    htf_bias: 'BUY',
-    premium_pct: 12,
-    pdh: 1.09100,
-    pdl: 1.08200,
-    liquidity_targets: [
-      { label: 'PDH', price: 1.09100, pips: 55.8 },
-      { label: 'H4 FVG', price: 1.08950, pips: 40.8 }
-    ],
+    type_code: 'A',
+    lot_size: 0.82,
+    gate: {
+      stop_hunt: true,
+      choch: true,
+      of_aligned: true,
+      pillars_count: 3
+    },
+    manipulation: {
+      stop_hunt: true,
+      stop_hunt_pips: 5.2,
+      wyckoff_pattern: 'SPRING',
+      fixing_window: 'NY_OPEN',
+      score_bonus: 30
+    },
     checklist: {
       d1_aligned: true,
       htf_aligned: true,
@@ -39,8 +36,7 @@ export const mockSignalsData: SignalsData = {
       of_confirmed: true,
       m1_candle: true,
       premium_ok: true
-    },
-    status: 'PENDING'
+    }
   },
   signals: [
     { id: '1', time: '2024-05-20T10:00:00Z', asset: 'GBPUSD', direction: 'SELL', zone: 'H1 OB', entry: 1.27450, sl: 1.27600, tp1: 1.27100, rr: 2.3, confidence: 82, status: 'WIN', pips: 35 },
@@ -57,9 +53,9 @@ export const mockSignalsData: SignalsData = {
       { asset: 'EURGBP', bias: 'BUY', premium: 10, zones: { buy: 2, sell: 0 } }
     ],
     activity_log: [
-      { id: 'l1', time: '10:45:22', type: 'signal', message: 'New signal detected: EURUSD BUY @ 1.08542' },
-      { id: 'l2', time: '10:42:10', type: 'touch', message: 'Price touched M15 Order Block on GBPUSD' },
-      { id: 'l3', time: '10:35:00', type: 'scan', message: 'Scanning Market: 7 active pairs, 0.4ms latency' }
+      { id: 'l1', time: '10:45:22', type: 'signal', message: 'New signal detected: EURUSD BUY @ 1.08542', isToday: true },
+      { id: 'l2', time: '10:42:10', type: 'touch', message: 'Price touched M15 Order Block on GBPUSD', isToday: true },
+      { id: 'l3', time: '10:35:00', type: 'scan', message: 'Scanning Market: 7 active pairs, 0.4ms latency', isToday: true }
     ]
   }
 };

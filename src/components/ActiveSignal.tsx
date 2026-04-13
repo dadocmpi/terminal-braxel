@@ -2,7 +2,7 @@ import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, MousePointer2 } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, MousePointer2, DollarSign } from 'lucide-react';
 
 export const ActiveSignal = () => {
   const { activeSignal, premiumPct } = useTrading();
@@ -17,7 +17,6 @@ export const ActiveSignal = () => {
   );
 
   const isShort = signal.direction === 'SELL';
-  // Validação lógica: Buy deve ser em Discount (<50), Sell deve ser em Premium (>50)
   const isPdAligned = isShort ? premiumPct > 50 : premiumPct < 50;
 
   return (
@@ -31,14 +30,13 @@ export const ActiveSignal = () => {
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2 bg-bull/10 px-3 py-1 border border-bull/20">
             <MousePointer2 className="w-3 h-3 text-bull animate-bounce" />
-            <span className="text-[9px] font-black text-bull uppercase tracking-widest">Execução Instantânea</span>
+            <span className="text-[9px] font-black text-bull uppercase tracking-widest">Instant Execution</span>
           </div>
         </div>
         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Detected: {new Date().toLocaleTimeString()}</span>
       </div>
 
       <div className="grid grid-cols-12">
-        {/* Header Info */}
         <div className="col-span-12 lg:col-span-3 p-8 border-r border-white/5 bg-[#050505]">
           <div className="flex items-center gap-3 mb-6">
             {isShort ? (
@@ -71,12 +69,20 @@ export const ActiveSignal = () => {
           </div>
         </div>
 
-        {/* Price Levels */}
         <div className="col-span-12 lg:col-span-6 grid grid-cols-2 md:grid-cols-4 gap-0 border-r border-white/5">
           <PriceBlock label="EXECUTE AT" value={signal.entry} type="entry" />
           <PriceBlock label="STOP LOSS" value={signal.sl} type="sl" sub={`-${signal.sl_pips.toFixed(1)} pips`} />
           <PriceBlock label="TARGET 1" value={signal.tp1} type="tp" sub={`+${signal.tp1_pips.toFixed(1)} pips`} />
-          <PriceBlock label="TARGET 2" value={signal.tp2} type="tp" sub={`+${signal.tp2_pips.toFixed(1)} pips`} />
+          
+          <div className="p-8 border-l-4 bg-primary/[0.05] border-l-primary flex flex-col justify-center border-r border-white/5">
+            <span className="text-[9px] text-primary uppercase font-black tracking-widest mb-3 flex items-center gap-1">
+              <DollarSign className="w-3 h-3" /> Fixed $10 Risk
+            </span>
+            <span className="text-2xl font-mono font-black tracking-tighter text-white">
+              {signal.lot_size} <span className="text-[10px] text-muted-foreground">LOTS</span>
+            </span>
+            <span className="text-[10px] text-muted-foreground font-mono mt-2 opacity-60">Auto-Calculated</span>
+          </div>
           
           <div className="col-span-full grid grid-cols-3 border-t border-white/5">
             <div className="p-6 border-r border-white/5 flex flex-col justify-center bg-black">
@@ -95,7 +101,6 @@ export const ActiveSignal = () => {
           </div>
         </div>
 
-        {/* Checklist */}
         <div className="col-span-12 lg:col-span-3 p-8 bg-[#030303]">
           <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4" /> Validation

@@ -4,7 +4,7 @@ export const generateMockCandles = (count: number, basePrice: number): Candle[] 
   const candles: Candle[] = [];
   let currentPrice = basePrice;
   const now = Math.floor(Date.now() / 1000);
-  const interval = 60; // M1
+  const interval = 60;
 
   for (let i = 0; i < count; i++) {
     const change = (Math.random() - 0.5) * (basePrice * 0.001);
@@ -27,31 +27,15 @@ export const generateMockCandles = (count: number, basePrice: number): Candle[] 
 };
 
 export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timeframe) => {
-  const obs: OrderBlock[] = [];
-  const fvgs: FairValueGap[] = [];
-  const structure: MarketStructure[] = [];
-  
   const lastCandle = candles[candles.length - 1];
-  const prevCandle = candles[candles.length - 2];
-
-  // 1. Detecção de Stop Hunt (Sombra longa + Reversão)
   const isStopHunt = (lastCandle.high - Math.max(lastCandle.open, lastCandle.close)) > (Math.abs(lastCandle.close - lastCandle.open) * 2);
-  
-  // 2. Detecção de CHoCH (Quebra de estrutura recente)
   const isCHoCH = lastCandle.close > Math.max(...candles.slice(-10, -1).map(c => c.high));
-
-  // 3. Order Flow (Volume + Delta simulado)
   const isOFAligned = lastCandle.volume > (candles.slice(-20).reduce((a, b) => a + b.volume, 0) / 20);
-
-  // 4. Bias D1
   const d1Bias: BiasDirection = lastCandle.close > candles[0].close ? 'BUY' : 'SELL';
-
-  // 5. Premium/Discount
   const high = Math.max(...candles.map(c => c.high));
   const low = Math.min(...candles.map(c => c.low));
   const premiumPct = ((lastCandle.close - low) / (high - low)) * 100;
 
-  // Gerar Sinal Ativo se houver confluência (Pelo menos 2 pilares)
   let activeSignal: ActiveSignal | null = null;
   const pillarsCount = (isStopHunt ? 1 : 0) + (isCHoCH ? 1 : 0) + (isOFAligned ? 1 : 0);
 
@@ -60,6 +44,13 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
     const entry = lastCandle.close;
     const sl = direction === 'BUY' ? low : high;
     const tp1 = entry + (Math.abs(entry - sl) * 1.5);
+    const sl_pips = Math.abs(entry - sl) * (asset.includes('JPY') ? 100 : 10000);
+    
+    // Fixed $10 Risk Calculation
+    // Lot Size = Risk Amount / (SL Pips * Pip Value)
+    // Assuming standard lot pip value of $10 for major pairs
+    const riskAmount = 10;
+    const lotSize = parseFloat((riskAmount / (sl_pips * 10)).toFixed(2));
     
     activeSignal = {
       asset,
@@ -68,12 +59,13 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
       sl,
       tp1,
       tp2: entry + (Math.abs(entry - sl) * 2.5),
-      sl_pips: Math.abs(entry - sl) * 10000,
-      tp1_pips: Math.abs(entry - tp1) * 10000,
-      tp2_pips: Math.abs(entry - sl) * 2.5 * 10000,
+      sl_pips,
+      tp1_pips: Math.abs(entry - tp1) * (asset.includes('JPY') ? 100 : 10000),
+      tp2_pips: Math.abs(entry - sl) * 2.5 * (asset.includes('JPY') ? 100 : 10000),
       rr: 1.5,
       confidence: 70 + (pillarsCount * 10),
       type_code: pillarsCount === 3 ? 'A' : 'B',
+      lot_size: lotSize > 0 ? lotSize : 0.01,
       gate: {
         stop_hunt: isStopHunt,
         choch: isCHoCH,
@@ -98,5 +90,5 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
     };
   }
 
-  return { obs, fvgs, structure, d1Bias, premiumPct, activeSignal };
+  return { obs: [], fvgs: [], structure: [], d1Bias, premiumPct, activeSignal };
 };
