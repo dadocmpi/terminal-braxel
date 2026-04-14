@@ -35,7 +35,6 @@ interface TradingContextType {
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 const getMarketSession = (): MarketSession => {
-  // Get current time in New York
   const nyTime = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
     hour: 'numeric',
@@ -54,7 +53,6 @@ const checkIsMarketOpen = () => {
   const now = new Date();
   const day = now.getUTCDay();
   const hour = now.getUTCHours();
-  // Standard Forex market hours (Sunday 21:00 UTC to Friday 21:00 UTC)
   if (day === 6) return false;
   if (day === 5 && hour >= 21) return false;
   if (day === 0 && hour < 21) return false;
@@ -132,6 +130,47 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       processQueue();
     }
   };
+
+  // Simulador de Ticks (Movimentação em tempo real)
+  useEffect(() => {
+    if (!isMarketOpen) return;
+
+    const tickInterval = setInterval(() => {
+      setAllAssetsData(prev => {
+        const newData = { ...prev };
+        Object.keys(newData).forEach(key => {
+          const assetData = newData[key];
+          if (assetData.candles.length === 0) return;
+
+          const lastIndex = assetData.candles.length - 1;
+          const lastCandle = { ...assetData.candles[lastIndex] };
+          
+          // Pequena variação aleatória (0.001% a 0.005%)
+          const volatility = key.includes('JPY') ? 0.01 : 0.00005;
+          const change = (Math.random() - 0.5) * volatility;
+          
+          lastCandle.close += change;
+          if (lastCandle.close > lastCandle.high) lastCandle.high = lastCandle.close;
+          if (lastCandle.close < lastCandle.low) lastCandle.low = lastCandle.close;
+
+          const newCandles = [...assetData.candles];
+          newCandles[lastIndex] = lastCandle;
+          
+          // Re-analisa com o novo preço para atualizar sinais e bias
+          const newAnalysis = analyzeWSBot(newCandles, key as Asset, 'M1');
+
+          newData[key] = {
+            ...assetData,
+            candles: newCandles,
+            analysis: newAnalysis
+          };
+        });
+        return newData;
+      });
+    }, 2000);
+
+    return () => clearInterval(tickInterval);
+  }, [isMarketOpen]);
 
   useEffect(() => {
     fetchQueue.current = [...activeAssets];
