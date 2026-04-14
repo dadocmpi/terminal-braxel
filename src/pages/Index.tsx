@@ -19,17 +19,13 @@ const MarketClosedOverlay = () => (
     </div>
     <h2 className="text-4xl font-black tracking-tighter text-white mb-4 uppercase">Market Closed</h2>
     <p className="text-muted-foreground max-w-md font-mono text-sm leading-relaxed uppercase tracking-widest">
-      Braxel Bot is in rest mode. Forex and Metals markets are closed during the weekend.
+      Braxel Bot is in rest mode.
     </p>
-    <div className="mt-10 flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-none">
-      <Lock className="w-4 h-4 text-primary" />
-      <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Returning Sunday at 21:00 UTC</span>
-    </div>
   </div>
 );
 
 const DashboardContent = () => {
-  const { activeAssets, currentSession, isMarketOpen } = useTrading();
+  const { activeAssets, isMarketOpen } = useTrading();
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
@@ -40,25 +36,12 @@ const DashboardContent = () => {
       <main className="w-full">
         <StatusCards />
         <ActiveSignal />
-        
         <WeeklyPerformance />
-        
-        {/* Timeline de Sessões agora aqui, largura total e esticada */}
         <SessionTimelineBar />
 
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
-          {/* Coluna dos Gráficos */}
+          {/* Coluna dos Gráficos (750px de altura total por gráfico) */}
           <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
-            <div className="p-4 border-b border-border/50 flex items-center justify-between bg-secondary/5">
-              <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                Monitoring Terminal: <span className="text-primary">{currentSession}</span>
-              </h2>
-              <div className="flex gap-2 items-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
-                <span className="text-[8px] font-bold text-bull uppercase tracking-widest">Live Scanning</span>
-              </div>
-            </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
               {activeAssets.slice(0, 3).map((asset, index) => (
                 <div 
@@ -71,12 +54,15 @@ const DashboardContent = () => {
             </div>
           </div>
 
-          {/* Coluna Lateral - Notícias e Feed colados no topo */}
-          <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5">
-            <div className="p-4 border-b border-border/50">
+          {/* Coluna Lateral - Alinhada com o fundo dos gráficos */}
+          <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5 h-full">
+            {/* Espaçador para empurrar o conteúdo para baixo e alinhar com a base */}
+            <div className="flex-1" /> 
+            
+            <div className="p-4 border-t border-border/50">
               <MarketNews />
             </div>
-            <div className="p-4">
+            <div className="p-4 border-t border-border/50">
               <ZoneActivityFeed />
             </div>
           </div>
