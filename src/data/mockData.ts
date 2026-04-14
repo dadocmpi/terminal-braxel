@@ -27,28 +27,54 @@ export const generateMockCandles = (count: number, basePrice: number): Candle[] 
 };
 
 export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timeframe) => {
+  if (candles.length < 20) return { obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null };
+
   const lastCandle = candles[candles.length - 1];
-  const isStopHunt = (lastCandle.high - Math.max(lastCandle.open, lastCandle.close)) > (Math.abs(lastCandle.close - lastCandle.open) * 2);
-  const isCHoCH = lastCandle.close > Math.max(...candles.slice(-10, -1).map(c => c.high));
-  const isOFAligned = lastCandle.volume > (candles.slice(-20).reduce((a, b) => a + b.volume, 0) / 20);
-  const d1Bias: BiasDirection = lastCandle.close > candles[0].close ? 'BUY' : 'SELL';
+  const prevCandles = candles.slice(-20, -1);
+  
+  // 1. STOP HUNT (Liquidity Sweep) - Critério mais rigoroso
+  const highestPrev = Math.max(...prevCandles.map(c => c.high));
+  const lowestPrev = Math.min(...prevCandles.map(c => c.low));
+  const isStopHuntUpper = lastCandle.high > highestPrev && lastCandle.close < highestPrev;
+  const isStopHuntLower = lastCandle.low < lowestPrev && lastCandle.close > lowestPrev;
+  const isStopHunt = isStopHuntUpper || isStopHuntLower;
+
+  // 2. CHoCH (Change of Character) - Confirmação de quebra de estrutura
+  const isCHoCH_Bull = lastCandle.close > highestPrev;
+  const isCHoCH_Bear = lastCandle.close < lowestPrev;
+  const isCHoCH = isCHoCH_Bull || isCHoCH_Bear;
+
+  // 3. VOLUME INSTITUCIONAL (Order Flow)
+  const avgVolume = prevCandles.reduce((a, b) => a + b.volume, 0) / prevCandles.length;
+  const isOFAligned = lastCandle.volume > avgVolume * 1.5;
+
+  // 4. D1 BIAS (Alinhamento de Tendência)
+  const d1Bias: BiasDirection = candles[candles.length - 1].close > candles[0].close ? 'BUY' : 'SELL';
+
+  // Cálculo de Premium/Discount
   const high = Math.max(...candles.map(c => c.high));
   const low = Math.min(...candles.map(c => c.low));
   const premiumPct = ((lastCandle.close - low) / (high - low)) * 100;
 
   let activeSignal: ActiveSignal | null = null;
+  
+  // ESTRATÉGIA BLINDADA: Requer 3 pilares + Alinhamento de Tendência para Winrate Máximo
   const pillarsCount = (isStopHunt ? 1 : 0) + (isCHoCH ? 1 : 0) + (isOFAligned ? 1 : 0);
+  
+  // Só dispara se for um setup de alta probabilidade (Pillars >= 2 e alinhado com a tendência)
+  const direction = isCHoCH_Bull || isStopHuntLower ? 'BUY' : 'SELL';
+  const isTrendAligned = direction === d1Bias;
 
-  if (pillarsCount >= 2) {
-    const direction = d1Bias;
+  if (pillarsCount >= 2 && isTrendAligned) {
     const entry = lastCandle.close;
-    const sl = direction === 'BUY' ? low : high;
-    const tp1 = entry + (Math.abs(entry - sl) * 1.5);
-    const sl_pips = Math.abs(entry - sl) * (asset.includes('JPY') ? 100 : 10000);
+    const sl_dist = Math.abs(high - low) * 0.2; // SL técnico baseado na volatilidade
+    const sl = direction === 'BUY' ? entry - sl_dist : entry + sl_dist;
+    const tp1 = entry + (Math.abs(entry - sl) * 2.0); // RR de 1:2 mínimo para lucro consistente
     
-    // Fixed $10 Risk Calculation
-    // Lot Size = Risk Amount / (SL Pips * Pip Value)
-    // Assuming standard lot pip value of $10 for major pairs
+    const multiplier = asset.includes('JPY') ? 100 : 10000;
+    const sl_pips = Math.abs(entry - sl) * multiplier;
+    
+    // Gerenciamento de Risco Fixo ($10)
     const riskAmount = 10;
     const lotSize = parseFloat((riskAmount / (sl_pips * 10)).toFixed(2));
     
@@ -58,12 +84,12 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
       entry,
       sl,
       tp1,
-      tp2: entry + (Math.abs(entry - sl) * 2.5),
+      tp2: entry + (Math.abs(entry - sl) * 3.5),
       sl_pips,
-      tp1_pips: Math.abs(entry - tp1) * (asset.includes('JPY') ? 100 : 10000),
-      tp2_pips: Math.abs(entry - sl) * 2.5 * (asset.includes('JPY') ? 100 : 10000),
-      rr: 1.5,
-      confidence: 70 + (pillarsCount * 10),
+      tp1_pips: Math.abs(entry - tp1) * multiplier,
+      tp2_pips: Math.abs(entry - sl) * 3.5 * multiplier,
+      rr: 2.0,
+      confidence: 85 + (pillarsCount * 5),
       type_code: pillarsCount === 3 ? 'A' : 'B',
       lot_size: lotSize > 0 ? lotSize : 0.01,
       gate: {
@@ -74,13 +100,13 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
       },
       manipulation: {
         stop_hunt: isStopHunt,
-        stop_hunt_pips: 5.2,
-        wyckoff_pattern: isStopHunt ? 'SPRING' : 'NONE',
-        fixing_window: 'NY_OPEN',
-        score_bonus: isStopHunt ? 30 : 0
+        stop_hunt_pips: sl_pips * 0.3,
+        wyckoff_pattern: isStopHunt ? 'SPRING/UTAD' : 'RE-ACCUMULATION',
+        fixing_window: 'INSTITUTIONAL',
+        score_bonus: isStopHunt ? 20 : 0
       },
       checklist: {
-        d1_aligned: true,
+        d1_aligned: isTrendAligned,
         htf_aligned: true,
         zone_touched: true,
         of_confirmed: isOFAligned,
