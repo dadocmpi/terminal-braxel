@@ -70,7 +70,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   const fetchQueue = useRef<Asset[]>([]);
   const isFetching = useRef(false);
-  const signalTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSignalIdRef = useRef<string>("");
 
   const addLog = (type: ActivityLog['type'], message: string) => {
@@ -82,6 +81,24 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isToday: true
     };
     setActivityLogs(prev => [newLog, ...prev].slice(0, 50));
+  };
+
+  const moveToHistory = (signal: ActiveSignal) => {
+    const isWin = Math.random() > 0.2; // 80% Winrate simulado
+    const pips = isWin ? signal.tp1_pips : -signal.sl_pips;
+    
+    const historyItem = {
+      ...signal,
+      id: `hist-${Date.now()}-${signal.asset}`,
+      time: new Date().toISOString(),
+      status: isWin ? 'WIN' : 'LOSS',
+      pips: parseFloat(pips.toFixed(1)),
+      zone: 'INSTITUTIONAL M1'
+    };
+
+    setSignalHistory(prev => [historyItem, ...prev]);
+    addLog('info', `SINAL FINALIZADO: ${signal.asset} movido para o histórico (${historyItem.status}).`);
+    setActiveSignal(null);
   };
 
   const fetchAssetData = async (targetAsset: Asset) => {
@@ -111,30 +128,22 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      // Lógica de Sinal Estável e Notificação Única
+      // Detecção de Novo Sinal
       if (analysis.activeSignal && !activeSignal) {
         const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
         
         if (lastSignalIdRef.current !== signalId) {
           lastSignalIdRef.current = signalId;
-          setActiveSignal(analysis.activeSignal);
-          playAlertSound('success');
-          addLog('signal', `CONFIRMADO: ${analysis.activeSignal.asset} ${analysis.activeSignal.direction} SETUP ${analysis.activeSignal.type_code}`);
+          const newSignal = analysis.activeSignal;
           
-          if (signalTimerRef.current) clearTimeout(signalTimerRef.current);
-          signalTimerRef.current = setTimeout(() => {
-            setSignalHistory(prev => [{
-              ...analysis.activeSignal,
-              id: Date.now().toString(),
-              time: new Date().toISOString(),
-              status: Math.random() > 0.2 ? 'WIN' : 'LOSS', // Winrate simulado de 80%
-              pips: Math.random() > 0.2 ? 25.0 : -12.5,
-              zone: 'M1 INSTITUTIONAL'
-            }, ...prev]);
-            
-            addLog('info', `SINAL FINALIZADO: ${analysis.activeSignal?.asset} movido para o histórico.`);
-            setActiveSignal(null);
-          }, 300000); // 5 minutos de tela garantidos
+          setActiveSignal(newSignal);
+          playAlertSound('success');
+          addLog('signal', `NOVO SINAL: ${newSignal.asset} ${newSignal.direction} detectado.`);
+          
+          // Timer de 5 minutos para mover ao histórico
+          setTimeout(() => {
+            moveToHistory(newSignal);
+          }, 300000);
         }
       }
     } catch (error) {
