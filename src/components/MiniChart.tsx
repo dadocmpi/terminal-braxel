@@ -70,7 +70,9 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
     <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02] relative">
       <div className="p-4 flex justify-between items-center border-b border-white/5">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">{asset}</span>
+          <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">
+            {isClosed ? '---' : asset}
+          </span>
           <span className={`text-[8px] font-mono px-2 py-0.5 rounded-none border ${status === 'live' && !isClosed ? 'text-bull border-bull/20 bg-bull/5' : 'text-muted-foreground border-white/10 bg-white/5'}`}>
             {isClosed ? 'OFFLINE' : status === 'live' ? 'M1 LIVE' : 'CONNECTING...'}
           </span>
