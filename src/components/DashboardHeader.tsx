@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calculator, Zap } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { useTrading } from '../contexts/TradingContext';
 import { WorldClocks } from './WorldClocks';
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,17 @@ export const DashboardHeader = () => {
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-10">
         <div className="flex items-center gap-4">
-          {/* Logo Estilizado Profissional */}
-          <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-none shadow-[0_0_20px_rgba(234,179,8,0.3)] transform -skew-x-12">
-            <Zap className="w-7 h-7 text-black fill-black" />
+          {/* Logo Oficial Braxel Markets */}
+          <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
+            <img 
+              src="dyad-media://media/cozy-beaver-jump/.dyad/media/58060039f5db88e06eea8c30bfc87c68.png" 
+              alt="Braxel Markets Logo" 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                // Fallback caso a imagem falhe novamente
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
           <div>
             <h1 className="text-xl font-black tracking-tighter leading-none text-white italic">BRAXEL</h1>
