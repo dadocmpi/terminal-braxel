@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,15 +8,43 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, DollarSign, Percent } from 'lucide-react';
 import { Asset } from '../types/trading';
+import { useTrading } from '../contexts/TradingContext';
 
 const ALL_ASSETS: Asset[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'];
 
 export const RiskCalculator = () => {
+  const { allAssetsData } = useTrading();
   const [asset, setAsset] = useState<Asset>("EURUSD");
   const [balance, setBalance] = useState("1000");
   const [risk, setRisk] = useState("1");
   const [entry, setEntry] = useState("1.08500");
   const [sl, setSl] = useState("1.08400");
+
+  // Função para atualizar preços baseada no par
+  const handleAssetChange = (newAsset: Asset) => {
+    setAsset(newAsset);
+    
+    // Tenta pegar o preço real do contexto
+    const assetData = allAssetsData[newAsset];
+    const currentPrice = assetData?.candles[assetData.candles.length - 1]?.close;
+
+    if (currentPrice) {
+      const isJpy = newAsset.includes('JPY');
+      const pipsOffset = isJpy ? 0.10 : 0.0010; // 10 pips de offset padrão
+      
+      setEntry(currentPrice.toFixed(isJpy ? 2 : 5));
+      setSl((currentPrice - pipsOffset).toFixed(isJpy ? 2 : 5));
+    } else {
+      // Fallback para valores padrão se não houver dados live
+      if (newAsset.includes('JPY')) {
+        setEntry("150.00");
+        setSl("149.90");
+      } else {
+        setEntry("1.08500");
+        setSl("1.08400");
+      }
+    }
+  };
 
   const calculateLot = () => {
     const b = parseFloat(balance);
@@ -27,15 +55,12 @@ export const RiskCalculator = () => {
     if (isNaN(b) || isNaN(r) || isNaN(e) || isNaN(s)) return 0;
 
     const riskAmount = b * (r / 100);
-    
-    // Lógica de Pips: JPY usa 2 casas (0.01), outros usam 4 (0.0001)
     const multiplier = asset.includes('JPY') ? 100 : 10000;
     const pips = Math.abs(e - s) * multiplier;
     
     if (pips === 0) return 0;
     
     // Lote = Risco $ / (Pips * Valor do Pip)
-    // Assumindo $10 por pip em lote padrão (0.10 por pip em micro lote)
     return (riskAmount / (pips * 10)).toFixed(2);
   };
 
@@ -56,7 +81,7 @@ export const RiskCalculator = () => {
         <div className="grid gap-6 py-4">
           <div className="space-y-2">
             <Label className="text-[9px] uppercase font-black text-muted-foreground">Select Asset</Label>
-            <Select value={asset} onValueChange={(value: Asset) => setAsset(value)}>
+            <Select value={asset} onValueChange={(value: Asset) => handleAssetChange(value)}>
               <SelectTrigger className="bg-white/5 border-white/10 rounded-none h-9 text-xs font-mono">
                 <SelectValue placeholder="Select Asset" />
               </SelectTrigger>
