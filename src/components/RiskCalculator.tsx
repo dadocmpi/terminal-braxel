@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, DollarSign, Percent, Coins } from 'lucide-react';
-import { useTrading } from '../contexts/TradingContext';
+import { Calculator, DollarSign, Percent } from 'lucide-react';
+import { Asset } from '../types/trading';
+
+const ALL_ASSETS: Asset[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'];
 
 export const RiskCalculator = () => {
-  const { activeAssets } = useTrading();
-  const [asset, setAsset] = useState(activeAssets[0] || "EURUSD");
+  const [asset, setAsset] = useState<Asset>("EURUSD");
   const [balance, setBalance] = useState("1000");
   const [risk, setRisk] = useState("1");
   const [entry, setEntry] = useState("1.08500");
@@ -27,15 +28,14 @@ export const RiskCalculator = () => {
 
     const riskAmount = b * (r / 100);
     
-    // Lógica de Pips: JPY usa 2 casas, outros usam 4
+    // Lógica de Pips: JPY usa 2 casas (0.01), outros usam 4 (0.0001)
     const multiplier = asset.includes('JPY') ? 100 : 10000;
     const pips = Math.abs(e - s) * multiplier;
     
     if (pips === 0) return 0;
     
     // Lote = Risco $ / (Pips * Valor do Pip)
-    // Assumindo $10 por pip em lote padrão para a maioria dos pares
-    // Para JPY em contas USD, o valor do pip varia, mas $10 é a média padrão de cálculo rápido
+    // Assumindo $10 por pip em lote padrão (0.10 por pip em micro lote)
     return (riskAmount / (pips * 10)).toFixed(2);
   };
 
@@ -55,13 +55,13 @@ export const RiskCalculator = () => {
         </DialogHeader>
         <div className="grid gap-6 py-4">
           <div className="space-y-2">
-            <Label className="text-[9px] uppercase font-black text-muted-foreground">Active Session Pair</Label>
-            <Select value={asset} onValueChange={setAsset}>
+            <Label className="text-[9px] uppercase font-black text-muted-foreground">Select Asset</Label>
+            <Select value={asset} onValueChange={(value: Asset) => setAsset(value)}>
               <SelectTrigger className="bg-white/5 border-white/10 rounded-none h-9 text-xs font-mono">
                 <SelectValue placeholder="Select Asset" />
               </SelectTrigger>
               <SelectContent className="bg-black border-white/10 text-white rounded-none">
-                {activeAssets.map((a) => (
+                {ALL_ASSETS.map((a) => (
                   <SelectItem key={a} value={a} className="text-xs font-mono focus:bg-primary focus:text-black">
                     {a}
                   </SelectItem>
