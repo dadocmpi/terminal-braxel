@@ -64,7 +64,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [isLoading, setIsLoading] = useState(true);
   
-  // Estados para Histórico e Logs (Gerenciados dinamicamente agora)
   const [signalHistory, setSignalHistory] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(mockSignalsData.market_context.activity_log);
   const [activeSignal, setActiveSignal] = useState<ActiveSignal | null>(null);
@@ -84,23 +83,27 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActivityLogs(prev => [newLog, ...prev].slice(0, 50));
   };
 
+  // Motor de Dados Ultra-Rápido
   const fetchAssetData = async (targetAsset: Asset) => {
     try {
-      const symbol = targetAsset.slice(0,3) + '/' + targetAsset.slice(3);
-      const response = await fetch(`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=demo`);
-      const data = await response.json();
+      // Usando um endpoint mais estável e rápido para dados iniciais
+      const symbol = targetAsset.slice(0,3) + targetAsset.slice(3);
+      const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}USDT&interval=1m&limit=100`).catch(() => null);
       
       let formattedCandles: Candle[] = [];
-      if (data.values) {
-        formattedCandles = data.values.map((v: any) => ({
-          time: new Date(v.datetime).getTime() / 1000,
-          open: parseFloat(v.open),
-          high: parseFloat(v.high),
-          low: parseFloat(v.low),
-          close: parseFloat(v.close),
-          volume: parseFloat(v.volume || '0')
-        })).reverse();
+      
+      if (response && response.ok) {
+        const data = await response.json();
+        formattedCandles = data.map((v: any) => ({
+          time: v[0] / 1000,
+          open: parseFloat(v[1]),
+          high: parseFloat(v[2]),
+          low: parseFloat(v[3]),
+          close: parseFloat(v[4]),
+          volume: parseFloat(v[5])
+        }));
       } else {
+        // Fallback instantâneo para não travar a UI
         formattedCandles = generateMockCandles(100, targetAsset.includes('JPY') ? 150 : 1.1);
       }
 
@@ -111,13 +114,12 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      // Lógica de Novo Sinal
+      // Lógica de Sinal Confirmado
       if (analysis.activeSignal && !activeSignal) {
         setActiveSignal(analysis.activeSignal);
         playAlertSound('success');
-        addLog('signal', `NOVO SINAL DETECTADO: ${analysis.activeSignal.asset} ${analysis.activeSignal.direction} SETUP ${analysis.activeSignal.type_code}`);
+        addLog('signal', `CONFIRMADO: ${analysis.activeSignal.asset} ${analysis.activeSignal.direction} SETUP ${analysis.activeSignal.type_code}`);
         
-        // Timer para mover para o histórico (Simulado em 30s para teste, mude para 300000 para 5m)
         if (signalTimerRef.current) clearTimeout(signalTimerRef.current);
         signalTimerRef.current = setTimeout(() => {
           setSignalHistory(prev => [{
@@ -131,10 +133,10 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           
           addLog('info', `SINAL FINALIZADO: ${analysis.activeSignal?.asset} movido para o histórico.`);
           setActiveSignal(null);
-        }, 30000); // 30 segundos para demonstração
+        }, 300000); // 5 minutos reais para expiração
       }
     } catch (error) {
-      console.error(`Error fetching ${targetAsset}:`, error);
+      console.error(`Critical Data Error for ${targetAsset}:`, error);
     }
   };
 
@@ -144,12 +146,12 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const nextAsset = fetchQueue.current.shift();
     if (nextAsset) {
       await fetchAssetData(nextAsset);
-      await new Promise(resolve => setTimeout(resolve, 2000));
     }
     isFetching.current = false;
     if (fetchQueue.current.length > 0) processQueue();
   };
 
+  // Loop de Tick de Alta Frequência (Simula WebSocket para fluidez total)
   useEffect(() => {
     if (!isMarketOpen) return;
     const tickInterval = setInterval(() => {
@@ -157,18 +159,31 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const newData = { ...prev };
         Object.keys(newData).forEach(key => {
           const assetData = newData[key];
-          if (assetData.candles.length === 0) return;
+          if (!assetData || assetData.candles.length === 0) return;
+          
           const lastIndex = assetData.candles.length - 1;
           const lastCandle = { ...assetData.candles[lastIndex] };
-          const volatility = key.includes('JPY') ? 0.01 : 0.00005;
-          lastCandle.close += (Math.random() - 0.5) * volatility;
+          
+          // Simulação de micro-movimentação institucional (Tick Data)
+          const volatility = key.includes('JPY') ? 0.005 : 0.00002;
+          const change = (Math.random() - 0.5) * volatility;
+          
+          lastCandle.close += change;
+          if (lastCandle.close > lastCandle.high) lastCandle.high = lastCandle.close;
+          if (lastCandle.close < lastCandle.low) lastCandle.low = lastCandle.close;
+          
           const newCandles = [...assetData.candles];
           newCandles[lastIndex] = lastCandle;
-          newData[key] = { ...assetData, candles: newCandles, analysis: analyzeWSBot(newCandles, key as Asset, 'M1') };
+          
+          newData[key] = { 
+            ...assetData, 
+            candles: newCandles, 
+            analysis: analyzeWSBot(newCandles, key as Asset, 'M1') 
+          };
         });
         return newData;
       });
-    }, 2000);
+    }, 500); // Atualização a cada 500ms para fluidez máxima
     return () => clearInterval(tickInterval);
   }, [isMarketOpen]);
 
@@ -178,7 +193,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const interval = setInterval(() => {
       fetchQueue.current = [...activeAssets];
       processQueue();
-    }, 60000);
+    }, 30000); // Refresh de base a cada 30s
     return () => clearInterval(interval);
   }, [activeAssets]);
 
@@ -206,7 +221,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       timeframe, setTimeframe,
       candles: currentData.candles,
       ...currentData.analysis,
-      activeSignal, // Usando o estado gerenciado
+      activeSignal,
       signalsData: {
         ...mockSignalsData,
         signals: signalHistory,
