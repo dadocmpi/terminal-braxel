@@ -1,13 +1,12 @@
 export type Asset = 'EURUSD' | 'GBPUSD' | 'USDCAD' | 'USDJPY' | 'AUDUSD' | 'GBPJPY' | 'EURGBP' | 'NZDUSD';
 export type Timeframe = 'D1' | 'H4' | 'H1' | 'M15' | 'M5' | 'M1';
 export type BiasDirection = 'BUY' | 'SELL' | 'NEUTRAL';
-export type MarketSession = 'SYDNEY' | 'TOKYO' | 'LONDON' | 'NEW_YORK' | 'CLOSE';
+export type MarketSession = 'LONDON' | 'NEW_YORK' | 'TOKYO' | 'CLOSE';
 
 export const SESSION_ASSETS: Record<MarketSession, Asset[]> = {
-  SYDNEY: ['AUDUSD', 'USDJPY', 'NZDUSD'],
-  TOKYO: ['USDJPY', 'GBPJPY', 'AUDUSD'],
   LONDON: ['GBPUSD', 'EURUSD', 'GBPJPY'],
   NEW_YORK: ['EURUSD', 'GBPUSD', 'USDCAD'],
+  TOKYO: ['USDJPY', 'GBPJPY', 'AUDUSD'],
   CLOSE: ['EURUSD', 'GBPUSD', 'USDCAD']
 };
 
@@ -76,7 +75,7 @@ export interface ActiveSignal {
   rr: number;
   confidence: number;
   type_code: 'A' | 'B' | 'C' | 'D';
-  lot_size: number; // Calculated based on $10 risk
+  lot_size: number;
   gate: ConfirmationGate;
   manipulation: BankManipulation;
   checklist: {

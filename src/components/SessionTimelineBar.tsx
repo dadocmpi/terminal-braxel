@@ -2,17 +2,26 @@ import React from 'react';
 
 export const SessionTimelineBar = () => {
   const sessions = [
-    { name: 'Sydney', start: 0, end: 7, color: 'var(--session-sydney)' },
-    { name: 'Tokyo', start: 1, end: 8, color: 'var(--session-asia)' },
-    { name: 'London', start: 8, end: 16, color: 'var(--session-london)' },
-    { name: 'New York', start: 13, end: 21, color: 'var(--session-ny)' },
+    { name: 'London', start: 5, end: 8, color: '#3b82f6' },
+    { name: 'New York', start: 8, end: 11, color: '#eab308' },
+    { name: 'Tokyo', start: 11, end: 14, color: '#ef4444' },
   ];
 
-  const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
+  // Get current hour in NY
+  const nyTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false
+  }).formatToParts(new Date());
+  
+  const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
+  const minute = parseInt(nyTime.find(p => p.type === 'minute')?.value || '0');
+  const currentHourNY = hour + minute / 60;
 
   return (
     <div className="bg-card/50 border border-border/50 rounded-xl p-4">
-      <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Market Sessions (UTC)</h3>
+      <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Trading Windows (NY Time)</h3>
       <div className="relative h-24 w-full bg-secondary/20 rounded-lg overflow-hidden">
         {/* Grid lines */}
         {[0, 4, 8, 12, 16, 20, 24].map(h => (
@@ -40,7 +49,7 @@ export const SessionTimelineBar = () => {
         {/* Current time indicator */}
         <div 
           className="absolute top-0 bottom-0 w-0.5 bg-primary z-10 shadow-[0_0_10px_rgba(0,255,255,0.5)]"
-          style={{ left: `${(currentHour/24)*100}%` }}
+          style={{ left: `${(currentHourNY/24)*100}%` }}
         />
       </div>
     </div>

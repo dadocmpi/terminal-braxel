@@ -35,11 +35,18 @@ interface TradingContextType {
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 const getMarketSession = (): MarketSession => {
-  const hour = new Date().getUTCHours();
-  if (hour >= 22 || hour < 7) return 'SYDNEY';
-  if (hour >= 0 && hour < 9) return 'TOKYO';
-  if (hour >= 8 && hour < 17) return 'LONDON';
-  if (hour >= 13 && hour < 22) return 'NEW_YORK';
+  // Get current time in New York
+  const nyTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    hour12: false
+  }).format(new Date());
+  
+  const hour = parseInt(nyTime);
+
+  if (hour >= 5 && hour < 8) return 'LONDON';
+  if (hour >= 8 && hour < 11) return 'NEW_YORK';
+  if (hour >= 11 && hour < 14) return 'TOKYO';
   return 'CLOSE';
 };
 
@@ -47,6 +54,7 @@ const checkIsMarketOpen = () => {
   const now = new Date();
   const day = now.getUTCDay();
   const hour = now.getUTCHours();
+  // Standard Forex market hours (Sunday 21:00 UTC to Friday 21:00 UTC)
   if (day === 6) return false;
   if (day === 5 && hour >= 21) return false;
   if (day === 0 && hour < 21) return false;
@@ -85,7 +93,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           volume: parseFloat(v.volume || '0')
         })).reverse();
       } else {
-        // Fallback to mock data if API fails/limits
         const basePrice = targetAsset.includes('JPY') ? 150 : 1.1;
         formattedCandles = generateMockCandles(100, basePrice);
       }
@@ -117,7 +124,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     if (nextAsset) {
       await fetchAssetData(nextAsset);
-      // Wait 2 seconds between requests to respect 'demo' key limits
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
     
@@ -128,11 +134,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
-    // Initial load for all active assets
     fetchQueue.current = [...activeAssets];
     processQueue().then(() => setIsLoading(false));
 
-    // Refresh interval
     const interval = setInterval(() => {
       fetchQueue.current = [...activeAssets];
       processQueue();
