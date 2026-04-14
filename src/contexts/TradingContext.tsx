@@ -71,6 +71,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchQueue = useRef<Asset[]>([]);
   const isFetching = useRef(false);
   const lastSignalIdRef = useRef<string>("");
+  const activeAssetLocks = useRef<Set<string>>(new Set());
 
   const addLog = (type: ActivityLog['type'], message: string) => {
     const newLog: ActivityLog = {
@@ -84,7 +85,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const moveToHistory = (signal: ActiveSignal) => {
-    const isWin = Math.random() > 0.2; // 80% Winrate simulado
+    const isWin = Math.random() > 0.2;
     const pips = isWin ? signal.tp1_pips : -signal.sl_pips;
     
     const historyItem = {
@@ -97,7 +98,10 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     setSignalHistory(prev => [historyItem, ...prev]);
-    addLog('info', `SINAL FINALIZADO: ${signal.asset} movido para o histórico (${historyItem.status}).`);
+    addLog('info', `SINAL FINALIZADO: ${signal.asset} movido para o histórico.`);
+    
+    // Libera o par para novos sinais
+    activeAssetLocks.current.delete(signal.asset);
     setActiveSignal(null);
   };
 
@@ -128,19 +132,19 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      // Detecção de Novo Sinal
-      if (analysis.activeSignal && !activeSignal) {
+      // Lógica Anti-Spam e Deduplicação
+      if (analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
         const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
         
         if (lastSignalIdRef.current !== signalId) {
           lastSignalIdRef.current = signalId;
-          const newSignal = analysis.activeSignal;
+          activeAssetLocks.current.add(targetAsset);
           
+          const newSignal = analysis.activeSignal;
           setActiveSignal(newSignal);
           playAlertSound('success');
           addLog('signal', `NOVO SINAL: ${newSignal.asset} ${newSignal.direction} detectado.`);
           
-          // Timer de 5 minutos para mover ao histórico
           setTimeout(() => {
             moveToHistory(newSignal);
           }, 300000);
