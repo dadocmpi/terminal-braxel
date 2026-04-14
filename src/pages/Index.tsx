@@ -10,7 +10,7 @@ import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SignalHistory } from '../components/SignalHistory';
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { Coffee, Lock } from 'lucide-react';
+import { Coffee } from 'lucide-react';
 
 const MarketClosedOverlay = () => (
   <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
