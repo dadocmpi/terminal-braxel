@@ -1,8 +1,7 @@
 import React from 'react';
-import { Calculator } from 'lucide-react';
 import { useTrading } from '../contexts/TradingContext';
-import { Button } from "@/components/ui/button";
 import Logo from './Logo';
+import { RiskCalculator } from './RiskCalculator';
 
 export const DashboardHeader = () => {
   const { isLoading, currentSession } = useTrading();
@@ -23,10 +22,7 @@ export const DashboardHeader = () => {
           <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">LIVE</span>
         </div>
         
-        <Button variant="outline" size="sm" className="h-8 border-white/10 bg-white/5 text-[9px] font-bold uppercase tracking-wider hover:bg-primary hover:text-black transition-all rounded-none">
-          <Calculator className="w-3 h-3 mr-2" />
-          RISK
-        </Button>
+        <RiskCalculator />
       </div>
     </header>
   );
