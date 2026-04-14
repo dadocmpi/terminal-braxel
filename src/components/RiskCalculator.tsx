@@ -5,9 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Calculator, DollarSign, Percent, Target } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calculator, DollarSign, Percent, Coins } from 'lucide-react';
+import { useTrading } from '../contexts/TradingContext';
 
 export const RiskCalculator = () => {
+  const { activeAssets } = useTrading();
+  const [asset, setAsset] = useState(activeAssets[0] || "EURUSD");
   const [balance, setBalance] = useState("1000");
   const [risk, setRisk] = useState("1");
   const [entry, setEntry] = useState("1.08500");
@@ -22,11 +26,16 @@ export const RiskCalculator = () => {
     if (isNaN(b) || isNaN(r) || isNaN(e) || isNaN(s)) return 0;
 
     const riskAmount = b * (r / 100);
-    const pips = Math.abs(e - s) * 10000; // Simplificado para majors
+    
+    // Lógica de Pips: JPY usa 2 casas, outros usam 4
+    const multiplier = asset.includes('JPY') ? 100 : 10000;
+    const pips = Math.abs(e - s) * multiplier;
+    
     if (pips === 0) return 0;
     
     // Lote = Risco $ / (Pips * Valor do Pip)
-    // Assumindo $10 por pip em lote padrão
+    // Assumindo $10 por pip em lote padrão para a maioria dos pares
+    // Para JPY em contas USD, o valor do pip varia, mas $10 é a média padrão de cálculo rápido
     return (riskAmount / (pips * 10)).toFixed(2);
   };
 
@@ -45,6 +54,22 @@ export const RiskCalculator = () => {
           <DialogTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Position Size Calculator</DialogTitle>
         </DialogHeader>
         <div className="grid gap-6 py-4">
+          <div className="space-y-2">
+            <Label className="text-[9px] uppercase font-black text-muted-foreground">Active Session Pair</Label>
+            <Select value={asset} onValueChange={setAsset}>
+              <SelectTrigger className="bg-white/5 border-white/10 rounded-none h-9 text-xs font-mono">
+                <SelectValue placeholder="Select Asset" />
+              </SelectTrigger>
+              <SelectContent className="bg-black border-white/10 text-white rounded-none">
+                {activeAssets.map((a) => (
+                  <SelectItem key={a} value={a} className="text-xs font-mono focus:bg-primary focus:text-black">
+                    {a}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-[9px] uppercase font-black text-muted-foreground">Balance ($)</Label>
@@ -61,6 +86,7 @@ export const RiskCalculator = () => {
               </div>
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-[9px] uppercase font-black text-muted-foreground">Entry Price</Label>
@@ -75,7 +101,10 @@ export const RiskCalculator = () => {
           <div className="mt-4 p-6 bg-primary/10 border border-primary/20 flex flex-col items-center justify-center">
             <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-2">Recommended Lot Size</span>
             <span className="text-4xl font-black tracking-tighter text-white">{lot}</span>
-            <span className="text-[10px] text-muted-foreground font-mono mt-2">Risk: ${(parseFloat(balance) * (parseFloat(risk)/100)).toFixed(2)}</span>
+            <div className="flex gap-4 mt-2">
+              <span className="text-[10px] text-muted-foreground font-mono">Risk: ${(parseFloat(balance) * (parseFloat(risk)/100)).toFixed(2)}</span>
+              <span className="text-[10px] text-muted-foreground font-mono">Asset: {asset}</span>
+            </div>
           </div>
         </div>
       </DialogContent>
