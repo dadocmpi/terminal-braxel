@@ -20,7 +20,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 250,
+      height: 500, // Aumentado para 500px de altura
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -85,7 +85,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         </div>
       </div>
       
-      <div className="relative w-full h-[250px]">
+      <div className="relative w-full h-[500px]">
         {isClosed ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] z-10">
             <Lock className="w-8 h-8 text-primary/40 mb-3" />

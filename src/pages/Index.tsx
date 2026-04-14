@@ -9,6 +9,7 @@ import { MarketNews } from '../components/MarketNews';
 import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SignalHistory } from '../components/SignalHistory';
+import { WorldClocks } from '../components/WorldClocks';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Coffee, Lock } from 'lucide-react';
 
@@ -40,9 +41,14 @@ const DashboardContent = () => {
       <main className="w-full">
         <StatusCards />
         <ActiveSignal />
+        
+        {/* Relógios agora abaixo dos sinais, largura total */}
+        <WorldClocks />
+        
         <WeeklyPerformance />
 
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
+          {/* Coluna dos Gráficos - Agora mais altos */}
           <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
             <div className="p-4 border-b border-border/50 flex items-center justify-between bg-secondary/5">
               <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
@@ -66,15 +72,16 @@ const DashboardContent = () => {
             </div>
           </div>
 
+          {/* Coluna Lateral - Notícias e Feed no topo, colados */}
           <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5">
-            <div className="p-6 border-b border-border/50">
+            <div className="p-4 border-b border-border/50">
               <MarketNews />
             </div>
-            <div className="p-6 border-b border-border/50">
-              <SessionTimelineBar />
-            </div>
-            <div className="p-6 flex-1">
+            <div className="p-4 border-b border-border/50">
               <ZoneActivityFeed />
+            </div>
+            <div className="p-4 flex-1">
+              <SessionTimelineBar />
             </div>
           </div>
         </div>

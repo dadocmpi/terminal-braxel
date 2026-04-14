@@ -17,19 +17,20 @@ const Clock = ({ label, timezone }: { label: string, timezone: string }) => {
   });
 
   return (
-    <div className="flex flex-col items-center px-3 border-r border-border/50 last:border-0">
-      <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">{label}</span>
-      <span className="text-sm font-mono font-bold text-primary">{formatted}</span>
+    <div className="flex items-center gap-4 px-8 border-r border-white/5 last:border-0">
+      <span className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">{label}</span>
+      <span className="text-lg font-mono font-black text-primary tabular-nums">{formatted}</span>
     </div>
   );
 };
 
 export const WorldClocks = () => {
   return (
-    <div className="flex items-center bg-secondary/30 rounded-md border border-border/50 py-1">
-      <Clock label="NY" timezone="America/New_York" />
-      <Clock label="LON" timezone="Europe/London" />
-      <Clock label="TKY" timezone="Asia/Tokyo" />
+    <div className="flex items-center justify-center bg-[#050505] border-y border-white/5 py-4 w-full">
+      <Clock label="NEW YORK" timezone="America/New_York" />
+      <Clock label="LONDON" timezone="Europe/London" />
+      <Clock label="TOKYO" timezone="Asia/Tokyo" />
+      <Clock label="SYDNEY" timezone="Australia/Sydney" />
     </div>
   );
 };
