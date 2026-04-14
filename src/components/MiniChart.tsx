@@ -20,7 +20,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 500, // Aumentado para 500px de altura
+      height: 750, // Aumentado significativamente para esticar o terminal
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#64748b',
@@ -67,7 +67,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
   }, [assetData, isClosed]);
 
   return (
-    <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02] relative">
+    <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02] relative h-full flex flex-col">
       <div className="p-4 flex justify-between items-center border-b border-white/5">
         <div className="flex items-center gap-3">
           <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">
@@ -85,7 +85,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
         </div>
       </div>
       
-      <div className="relative w-full h-[500px]">
+      <div className="relative w-full flex-1 min-h-[750px]">
         {isClosed ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] z-10">
             <Lock className="w-8 h-8 text-primary/40 mb-3" />
