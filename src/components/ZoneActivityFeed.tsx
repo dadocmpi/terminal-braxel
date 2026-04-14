@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, Info, AlertTriangle, Target, Search, Zap } from 'lucide-react';
+import { Info, AlertTriangle, Target, Search, Zap } from 'lucide-react';
 
 export const ZoneActivityFeed = () => {
   const { signalsData } = useTrading();
@@ -16,12 +16,10 @@ export const ZoneActivityFeed = () => {
     }
   };
 
-  // Filter for today's logs only
-  const dailyLogs = signalsData.market_context.activity_log.filter(log => log.isToday);
+  const dailyLogs = signalsData.market_context.activity_log;
 
   return (
     <div className="bg-black border border-white/10 rounded-none p-6 flex flex-col h-[450px] relative overflow-hidden">
-      {/* Background Glow */}
       <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
       
       <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
@@ -29,7 +27,7 @@ export const ZoneActivityFeed = () => {
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_#EAB308]" />
           <h3 className="text-[11px] font-black text-white uppercase tracking-[0.3em]">Institutional Feed</h3>
         </div>
-        <span className="text-[9px] font-mono text-primary/60 uppercase tracking-widest">Today Only</span>
+        <span className="text-[9px] font-mono text-primary/60 uppercase tracking-widest">Live Updates</span>
       </div>
 
       <ScrollArea className="flex-1 pr-4">
