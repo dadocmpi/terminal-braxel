@@ -3,17 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Calendar as CalendarIcon, TrendingUp, CheckCircle2, XCircle } from 'lucide-react';
 
 const weeklyData = [
-  { day: 'MON', date: '20/05', pips: +120, wins: 3, losses: 1, status: 'win' },
-  { day: 'TUE', date: '21/05', pips: +85, wins: 2, losses: 0, status: 'win' },
-  { day: 'WED', date: '22/05', pips: -40, wins: 1, losses: 2, status: 'loss' },
-  { day: 'THU', date: '23/05', pips: +210, wins: 4, losses: 1, status: 'win' },
-  { day: 'FRI', date: '24/05', pips: 0, wins: 0, losses: 0, status: 'pending' },
+  { day: 'MON', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
+  { day: 'TUE', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
+  { day: 'WED', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
+  { day: 'THU', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
+  { day: 'FRI', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
 ];
 
 export const WeeklyPerformance = () => {
   const totalWins = weeklyData.reduce((acc, curr) => acc + curr.wins, 0);
   const totalLosses = weeklyData.reduce((acc, curr) => acc + curr.losses, 0);
-  const winRate = Math.round((totalWins / (totalWins + totalLosses)) * 100);
+  const winRate = totalWins + totalLosses > 0 ? Math.round((totalWins / (totalWins + totalLosses)) * 100) : 0;
 
   return (
     <Card className="bg-black border-white/5 rounded-none overflow-hidden">
@@ -23,15 +23,15 @@ export const WeeklyPerformance = () => {
           <span className="text-[10px] text-primary font-black uppercase tracking-[0.3em] mb-2">Weekly Win Rate</span>
           <div className="flex items-baseline gap-2">
             <h2 className="text-6xl font-black tracking-tighter text-white glow-text-gold">{winRate}%</h2>
-            <TrendingUp className="w-6 h-6 text-bull" />
+            <TrendingUp className="w-6 h-6 text-muted-foreground/20" />
           </div>
           <div className="mt-4 flex gap-4">
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-bull" />
+              <div className="w-1.5 h-1.5 rounded-full bg-bull/20" />
               <span className="text-[10px] font-mono text-muted-foreground">{totalWins} Wins</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-bear" />
+              <div className="w-1.5 h-1.5 rounded-full bg-bear/20" />
               <span className="text-[10px] font-mono text-muted-foreground">{totalLosses} Losses</span>
             </div>
           </div>
