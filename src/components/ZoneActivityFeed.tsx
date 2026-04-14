@@ -20,7 +20,7 @@ export const ZoneActivityFeed = () => {
   const dailyLogs = signalsData.market_context.activity_log.filter(log => log.isToday);
 
   return (
-    <div className="bg-black border border-white/10 rounded-none p-6 flex flex-col h-[600px] relative overflow-hidden">
+    <div className="bg-black border border-white/10 rounded-none p-6 flex flex-col h-[450px] relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
       
