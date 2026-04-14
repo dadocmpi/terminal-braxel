@@ -12,7 +12,9 @@ export const DashboardHeader = () => {
       <div className="flex items-center gap-6">
         <Logo />
         <div className="h-6 w-px bg-white/10" />
-        <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">{currentSession}</span>
+        <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">
+          SESSÃO: {currentSession}
+        </span>
       </div>
 
       <div className="flex items-center gap-4">
