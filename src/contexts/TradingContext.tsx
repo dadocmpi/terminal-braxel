@@ -39,9 +39,11 @@ const getMarketSession = (): MarketSession => {
     hour12: false
   }).format(new Date());
   const hour = parseInt(nyTime);
-  if (hour >= 5 && hour < 8) return 'LONDON';
-  if (hour >= 8 && hour < 11) return 'NEW_YORK';
-  if (hour >= 11 && hour < 14) return 'TOKYO';
+  
+  // Horários de Sessão (NY Time)
+  if (hour >= 3 && hour < 11) return 'LONDON';
+  if (hour >= 8 && hour < 17) return 'NEW_YORK';
+  if (hour >= 19 || hour < 4) return 'TOKYO';
   return 'CLOSE';
 };
 
@@ -49,9 +51,9 @@ const checkIsMarketOpen = () => {
   const now = new Date();
   const day = now.getUTCDay();
   const hour = now.getUTCHours();
-  if (day === 6) return false;
-  if (day === 5 && hour >= 21) return false;
-  if (day === 0 && hour < 21) return false;
+  if (day === 6) return false; // Sábado
+  if (day === 5 && hour >= 21) return false; // Sexta após fechamento
+  if (day === 0 && hour < 21) return false; // Domingo antes da abertura
   return true;
 };
 
@@ -94,7 +96,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       time: new Date().toISOString(),
       status: isWin ? 'WIN' : 'LOSS',
       pips: parseFloat(pips.toFixed(1)),
-      // Agora salvamos o preço de entrada formatado na coluna Zone
       zone: signal.entry.toFixed(signal.asset.includes('JPY') ? 3 : 5)
     };
 
@@ -132,7 +133,10 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      if (analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
+      // TRAVA DE SEGURANÇA: Só gera sinal se o par estiver na sua sessão correta e não for CLOSE
+      const isAssetInTradingSession = currentSession !== 'CLOSE' && SESSION_ASSETS[currentSession].includes(targetAsset);
+
+      if (isAssetInTradingSession && analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
         const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
         
         if (lastSignalIdRef.current !== signalId) {
@@ -142,7 +146,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const newSignal = analysis.activeSignal;
           setActiveSignal(newSignal);
           playAlertSound('success');
-          addLog('signal', `NOVO SINAL: ${newSignal.asset} ${newSignal.direction} detectado.`);
+          addLog('signal', `NOVO SINAL: ${newSignal.asset} ${newSignal.direction} detectado na sessão ${currentSession}.`);
           
           setTimeout(() => {
             moveToHistory(newSignal);
