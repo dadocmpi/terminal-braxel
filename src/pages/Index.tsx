@@ -11,7 +11,6 @@ import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SignalHistory } from '../components/SignalHistory';
 import { MarketBiasSummary } from '../components/MarketBiasSummary';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
-import { AnalysisTabs } from '../components/AnalysisTabs';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Coffee, LayoutDashboard, BarChart3, Shield } from 'lucide-react';
 
@@ -87,7 +86,6 @@ const DashboardContent = () => {
               <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Market Bias Overview</h3>
             </div>
             <MarketBiasSummary />
-            <AnalysisTabs />
           </div>
           
           <div className="col-span-12 lg:col-span-8 p-8">
