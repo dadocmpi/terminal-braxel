@@ -37,11 +37,50 @@ const DashboardContent = () => {
       <DashboardHeader />
       
       <main className="w-full">
+        {/* 1. EXECUÇÃO IMEDIATA */}
         <StatusCards />
         <ActiveSignal />
         
-        {/* Seção de Inteligência de Mercado */}
-        <div className="grid grid-cols-12 gap-0 border-b border-white/5 bg-[#030303]">
+        {/* 2. MONITORAMENTO EM TEMPO REAL */}
+        <div className="grid grid-cols-12 gap-0 border-b border-border/50">
+          <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+              {activeAssets.slice(0, 3).map((asset, index) => (
+                <div 
+                  key={asset} 
+                  className={`border-b border-border/50 ${index < 2 ? 'md:border-r' : ''}`}
+                >
+                  <MiniChart asset={asset} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5 h-full">
+            <div className="p-4 border-b border-border/50">
+              <MarketNews />
+            </div>
+            <div className="p-4 flex-1">
+              <ZoneActivityFeed />
+            </div>
+          </div>
+        </div>
+
+        {/* 3. PERFORMANCE SEMANAL E TIMELINE */}
+        <WeeklyPerformance />
+        <SessionTimelineBar />
+
+        {/* 4. HISTÓRICO DE EXECUÇÃO */}
+        <div className="p-8 border-b border-white/5">
+          <div className="flex items-center gap-3 mb-6">
+            <LayoutDashboard className="w-4 h-4 text-primary" />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Execution Log</h3>
+          </div>
+          <SignalHistory />
+        </div>
+
+        {/* 5. INTELIGÊNCIA E ANALYTICS (BASE) */}
+        <div className="grid grid-cols-12 gap-0 bg-[#030303]">
           <div className="col-span-12 lg:col-span-4 p-8 border-r border-white/5">
             <div className="flex items-center gap-3 mb-6">
               <Shield className="w-4 h-4 text-primary" />
@@ -58,42 +97,6 @@ const DashboardContent = () => {
             </div>
             <AnalyticsCharts />
           </div>
-        </div>
-
-        <WeeklyPerformance />
-        <SessionTimelineBar />
-
-        <div className="grid grid-cols-12 gap-0 border-b border-border/50">
-          <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-              {activeAssets.slice(0, 3).map((asset, index) => (
-                <div 
-                  key={asset} 
-                  className={`border-b border-border/50 ${index < 2 ? 'md:border-r' : ''}`}
-                >
-                  <MiniChart asset={asset} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5 h-full">
-            <div className="flex-1" /> 
-            <div className="p-4 border-t border-border/50">
-              <MarketNews />
-            </div>
-            <div className="p-4 border-t border-border/50">
-              <ZoneActivityFeed />
-            </div>
-          </div>
-        </div>
-
-        <div className="p-8 space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <LayoutDashboard className="w-4 h-4 text-primary" />
-            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Execution Log</h3>
-          </div>
-          <SignalHistory />
         </div>
 
         <footer className="py-8 opacity-30">
