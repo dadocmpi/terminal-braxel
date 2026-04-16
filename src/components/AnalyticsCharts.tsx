@@ -21,50 +21,50 @@ const distData = [
 
 export const AnalyticsCharts = () => {
   return (
-    <div className="grid grid-cols-2 gap-6">
-      <Card className="bg-card/50 border-border/50 p-6">
-        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-6">Equity Curve (Pips)</h3>
-        <div className="h-[250px] w-full">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-white/[0.02] border border-white/5 p-6 rounded-none">
+        <h3 className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-6">Equity Growth (Pips)</h3>
+        <div className="h-[200px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={equityData}>
               <defs>
                 <linearGradient id="colorPips" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--bull))" stopOpacity={0.3}/>
+                  <stop offset="5%" stopColor="hsl(var(--bull))" stopOpacity={0.2}/>
                   <stop offset="95%" stopColor="hsl(var(--bull))" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="name" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+              <XAxis dataKey="name" stroke="#475569" fontSize={9} tickLine={false} axisLine={false} />
+              <YAxis stroke="#475569" fontSize={9} tickLine={false} axisLine={false} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                itemStyle={{ color: '#22c55e', fontSize: '12px' }}
+                contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0px' }}
+                itemStyle={{ color: 'hsl(var(--bull))', fontSize: '10px', fontWeight: 'bold' }}
               />
               <Area type="monotone" dataKey="pips" stroke="hsl(var(--bull))" fillOpacity={1} fill="url(#colorPips)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      </div>
 
-      <Card className="bg-card/50 border-border/50 p-6">
-        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-6">Signal Distribution</h3>
-        <div className="h-[250px] w-full">
+      <div className="bg-white/[0.02] border border-white/5 p-6 rounded-none">
+        <h3 className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-6">Signal Distribution</h3>
+        <div className="h-[200px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={distData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="name" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+              <XAxis dataKey="name" stroke="#475569" fontSize={9} tickLine={false} axisLine={false} />
+              <YAxis stroke="#475569" fontSize={9} tickLine={false} axisLine={false} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                itemStyle={{ fontSize: '12px' }}
+                contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0px' }}
+                itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
               />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} />
+              <Legend iconType="square" wrapperStyle={{ fontSize: '9px', paddingTop: '20px', fontWeight: 'bold', textTransform: 'uppercase' }} />
               <Bar dataKey="win" stackId="a" fill="hsl(var(--bull))" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="loss" stackId="a" fill="hsl(var(--bear))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="loss" stackId="a" fill="hsl(var(--bear))" radius={[0, 0, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

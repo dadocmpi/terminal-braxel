@@ -9,8 +9,11 @@ import { MarketNews } from '../components/MarketNews';
 import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SignalHistory } from '../components/SignalHistory';
+import { MarketBiasSummary } from '../components/MarketBiasSummary';
+import { AnalyticsCharts } from '../components/AnalyticsCharts';
+import { AnalysisTabs } from '../components/AnalysisTabs';
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { Coffee } from 'lucide-react';
+import { Coffee, LayoutDashboard, BarChart3, Shield } from 'lucide-react';
 
 const MarketClosedOverlay = () => (
   <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
@@ -36,11 +39,31 @@ const DashboardContent = () => {
       <main className="w-full">
         <StatusCards />
         <ActiveSignal />
+        
+        {/* Seção de Inteligência de Mercado */}
+        <div className="grid grid-cols-12 gap-0 border-b border-white/5 bg-[#030303]">
+          <div className="col-span-12 lg:col-span-4 p-8 border-r border-white/5">
+            <div className="flex items-center gap-3 mb-6">
+              <Shield className="w-4 h-4 text-primary" />
+              <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Market Bias Overview</h3>
+            </div>
+            <MarketBiasSummary />
+            <AnalysisTabs />
+          </div>
+          
+          <div className="col-span-12 lg:col-span-8 p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Performance Analytics</h3>
+            </div>
+            <AnalyticsCharts />
+          </div>
+        </div>
+
         <WeeklyPerformance />
         <SessionTimelineBar />
 
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
-          {/* Coluna dos Gráficos (750px de altura total por gráfico) */}
           <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
               {activeAssets.slice(0, 3).map((asset, index) => (
@@ -54,11 +77,8 @@ const DashboardContent = () => {
             </div>
           </div>
 
-          {/* Coluna Lateral - Alinhada com o fundo dos gráficos */}
           <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5 h-full">
-            {/* Espaçador para empurrar o conteúdo para baixo e alinhar com a base */}
             <div className="flex-1" /> 
-            
             <div className="p-4 border-t border-border/50">
               <MarketNews />
             </div>
@@ -69,6 +89,10 @@ const DashboardContent = () => {
         </div>
 
         <div className="p-8 space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <LayoutDashboard className="w-4 h-4 text-primary" />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Execution Log</h3>
+          </div>
           <SignalHistory />
         </div>
 
