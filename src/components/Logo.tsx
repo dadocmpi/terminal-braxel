@@ -7,13 +7,13 @@ const Logo = () => {
 
   return (
     <div className="flex items-center">
-      <div className="relative w-12 h-12 flex items-center justify-center overflow-hidden">
+      <div className="relative w-10 h-10 flex items-center justify-center">
         <img 
           src={logoUrl} 
           alt="Braxel Logo" 
-          className="w-full h-full object-contain brightness-110 contrast-110"
+          className="w-full h-full object-contain brightness-125 contrast-125"
+          style={{ filter: 'drop-shadow(0 0 8px rgba(234, 179, 8, 0.2))' }}
           onError={(e) => {
-            // Fallback caso a imagem falhe
             e.currentTarget.style.display = 'none';
           }}
         />
