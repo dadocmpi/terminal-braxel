@@ -41,7 +41,7 @@ export const SignalHistory = () => {
               <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Time</th>
               <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Asset</th>
               <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dir</th>
-              <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Zone</th>
+              <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Price</th>
               <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Entry</th>
               <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">RR</th>
               <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Conf%</th>
@@ -59,7 +59,7 @@ export const SignalHistory = () => {
                     {s.direction}
                   </Badge>
                 </td>
-                <td className="px-6 py-3 text-[10px] font-mono">{s.zone}</td>
+                <td className="px-6 py-3 text-[10px] font-mono font-bold text-primary">{s.zone}</td>
                 <td className="px-6 py-3 text-[10px] font-mono">{s.entry.toFixed(5)}</td>
                 <td className="px-6 py-3 text-[10px] font-mono text-primary">{s.rr}</td>
                 <td className="px-6 py-3 text-[10px] font-mono">{s.confidence}%</td>

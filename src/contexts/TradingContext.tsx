@@ -94,13 +94,13 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       time: new Date().toISOString(),
       status: isWin ? 'WIN' : 'LOSS',
       pips: parseFloat(pips.toFixed(1)),
-      zone: 'INSTITUTIONAL M1'
+      // Agora salvamos o preço de entrada formatado na coluna Zone
+      zone: signal.entry.toFixed(signal.asset.includes('JPY') ? 3 : 5)
     };
 
     setSignalHistory(prev => [historyItem, ...prev]);
     addLog('info', `SINAL FINALIZADO: ${signal.asset} movido para o histórico.`);
     
-    // Libera o par para novos sinais
     activeAssetLocks.current.delete(signal.asset);
     setActiveSignal(null);
   };
@@ -132,7 +132,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      // Lógica Anti-Spam e Deduplicação
       if (analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
         const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
         
