@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Asset, Timeframe, Candle, OrderBlock, FairValueGap, MarketStructure, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS, ActivityLog } from '../types/trading';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Asset, Timeframe, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession, ActivityLog } from '../types/trading';
 import { analyzeWSBot, generateMockCandles } from '../data/mockData';
 import { mockSignalsData } from '../data/signalsData';
-import { playAlertSound } from '../utils/audio';
+import { supabase } from '../lib/supabase';
 
 interface AssetData {
   candles: Candle[];
@@ -16,9 +16,6 @@ interface TradingContextType {
   timeframe: Timeframe;
   setTimeframe: (t: Timeframe) => void;
   candles: Candle[];
-  obs: OrderBlock[];
-  fvgs: FairValueGap[];
-  structure: MarketStructure[];
   d1Bias: BiasDirection;
   premiumPct: number;
   activeSignal: ActiveSignal | null;
@@ -44,103 +41,82 @@ const getMarketSession = (): MarketSession => {
   return 'LONDON';
 };
 
-const getSessionIndexName = (session: MarketSession) => {
+const getSessionAssets = (session: MarketSession): Asset[] => {
   switch(session) {
-    case 'NEW_YORK': return 'DXY (USD INDEX)';
-    case 'LONDON': return 'EXY (EUR INDEX)';
-    case 'TOKYO': return 'JXY (JPY INDEX)';
-    default: return 'DXY (USD INDEX)';
+    case 'NEW_YORK': return ['EURUSD', 'GBPUSD', 'USDCAD'];
+    case 'LONDON': return ['EURUSD', 'GBPUSD', 'EURGBP'];
+    case 'TOKYO': return ['USDJPY', 'GBPJPY', 'AUDUSD'];
+    default: return ['EURUSD', 'GBPUSD', 'USDJPY'];
   }
 };
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isMarketOpen, setIsMarketOpen] = useState(true);
-  const [currentSession, setCurrentSession] = useState<MarketSession>(getMarketSession());
-  const [activeAssets] = useState<Asset[]>(['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY']);
-  const [asset, setAsset] = useState<Asset>('EURUSD');
-  const [timeframe] = useState<Timeframe>('M1');
+  const [currentSession] = useState<MarketSession>(getMarketSession());
+  const [activeAssets] = useState<Asset[]>(getSessionAssets(currentSession));
+  const [asset, setAsset] = useState<Asset>(activeAssets[0]);
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [marketSentiment, setMarketSentiment] = useState({ buyers: 50, sellers: 50 });
-  const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({ 
-    name: getSessionIndexName(currentSession), 
-    candles: generateMockCandles(100, 104.5) 
-  });
   
-  const [signalHistory, setSignalHistory] = useState<any[]>([]);
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(mockSignalsData.market_context.activity_log);
-  const [activeSignal, setActiveSignal] = useState<ActiveSignal | null>(null);
-  
-  const lastSignalIdRef = useRef<string>("");
-
-  const addLog = (type: ActivityLog['type'], message: string) => {
-    const newLog: ActivityLog = {
-      id: Math.random().toString(36).substr(2, 9),
-      time: new Date().toLocaleTimeString(),
-      type,
-      message,
-      isToday: true
-    };
-    setActivityLogs(prev => [newLog, ...prev].slice(0, 50));
-  };
+  // Agregadores Reais
+  const [d1Bias, setD1Bias] = useState<BiasDirection>('NEUTRAL');
+  const [premiumPct, setPremiumPct] = useState(50);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const buyers = 40 + Math.random() * 20;
-      setMarketSentiment({ buyers, sellers: 100 - buyers });
-      
-      setSessionIndex(prev => {
-        const lastCandle = { ...prev.candles[prev.candles.length - 1] };
-        lastCandle.close += (Math.random() - 0.5) * 0.01;
-        const newCandles = [...prev.candles];
-        newCandles[newCandles.length - 1] = lastCandle;
-        return { ...prev, candles: newCandles };
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const fetchAll = async () => {
+    const fetchData = async () => {
       const newData: Record<string, AssetData> = {};
+      let totalPremium = 0;
+      let buyCount = 0;
+      let sellCount = 0;
+
       for (const a of activeAssets) {
+        // Aqui no futuro substituiremos por: await fetchRealData(a)
         const candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
-        newData[a] = { candles, analysis: analyzeWSBot(candles, a, 'M1'), lastUpdate: Date.now() };
+        const analysis = analyzeWSBot(candles, a, 'M1');
+        
+        newData[a] = { candles, analysis, lastUpdate: Date.now() };
+        
+        totalPremium += analysis.premiumPct;
+        if (analysis.d1Bias === 'BUY') buyCount++;
+        if (analysis.d1Bias === 'SELL') sellCount++;
       }
+
+      // Cálculo da Média da Sessão (Profissional)
+      setPremiumPct(totalPremium / activeAssets.length);
+      if (buyCount > sellCount) setD1Bias('BUY');
+      else if (sellCount > buyCount) setD1Bias('SELL');
+      else setD1Bias('NEUTRAL');
+
       setAllAssetsData(newData);
       setIsLoading(false);
     };
-    fetchAll();
+
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // Atualização profissional a cada 10s
+    return () => clearInterval(interval);
   }, [activeAssets]);
 
   const currentData = allAssetsData[asset] || { 
     candles: [], 
-    analysis: { obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null },
-    lastUpdate: 0 
+    analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null }
   };
 
   return (
     <TradingContext.Provider value={{
       asset, setAsset,
-      timeframe, setTimeframe: () => {},
+      timeframe: 'M1', setTimeframe: () => {},
       candles: currentData.candles,
-      ...currentData.analysis,
-      activeSignal,
-      signalsData: {
-        ...mockSignalsData,
-        signals: signalHistory,
-        market_context: {
-          ...mockSignalsData.market_context,
-          activity_log: activityLogs
-        }
-      },
+      d1Bias,
+      premiumPct,
+      activeSignal: currentData.analysis.activeSignal,
+      signalsData: mockSignalsData,
       isLoading,
       currentSession,
       activeAssets,
-      isMarketOpen,
+      isMarketOpen: currentSession !== 'CLOSE',
       allAssetsData,
       marketSentiment,
-      sessionIndex
+      sessionIndex: { name: 'DXY', candles: generateMockCandles(100, 104.5) }
     }}>
       {children}
     </TradingContext.Provider>
