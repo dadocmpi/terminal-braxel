@@ -28,6 +28,8 @@ interface TradingContextType {
   activeAssets: Asset[];
   isMarketOpen: boolean;
   allAssetsData: Record<string, AssetData>;
+  marketSentiment: { buyers: number; sellers: number };
+  sessionIndex: { name: string; candles: Candle[] };
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
@@ -36,32 +38,40 @@ const getMarketSession = (): MarketSession => {
   const now = new Date();
   const isWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
   if (isWeekend) return 'CLOSE';
-  return 'NEW_YORK'; 
+  const hour = now.getUTCHours();
+  if (hour >= 8 && hour <= 16) return 'NEW_YORK';
+  if (hour >= 0 && hour <= 8) return 'TOKYO';
+  return 'LONDON';
 };
 
-const checkIsMarketOpen = () => {
-  const now = new Date();
-  const isWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
-  return !isWeekend; 
+const getSessionIndexName = (session: MarketSession) => {
+  switch(session) {
+    case 'NEW_YORK': return 'DXY (USD INDEX)';
+    case 'LONDON': return 'EXY (EUR INDEX)';
+    case 'TOKYO': return 'JXY (JPY INDEX)';
+    default: return 'DXY (USD INDEX)';
+  }
 };
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isMarketOpen, setIsMarketOpen] = useState(checkIsMarketOpen());
+  const [isMarketOpen, setIsMarketOpen] = useState(true);
   const [currentSession, setCurrentSession] = useState<MarketSession>(getMarketSession());
-  const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession] || SESSION_ASSETS['CLOSE']);
-  const [asset, setAsset] = useState<Asset>(activeAssets[0] || 'EURUSD');
-  const [timeframe, setTimeframe] = useState<Timeframe>('M1');
+  const [activeAssets] = useState<Asset[]>(['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY']);
+  const [asset, setAsset] = useState<Asset>('EURUSD');
+  const [timeframe] = useState<Timeframe>('M1');
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [marketSentiment, setMarketSentiment] = useState({ buyers: 50, sellers: 50 });
+  const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({ 
+    name: getSessionIndexName(currentSession), 
+    candles: generateMockCandles(100, 104.5) 
+  });
   
   const [signalHistory, setSignalHistory] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(mockSignalsData.market_context.activity_log);
   const [activeSignal, setActiveSignal] = useState<ActiveSignal | null>(null);
   
-  const fetchQueue = useRef<Asset[]>([]);
-  const isFetching = useRef(false);
   const lastSignalIdRef = useRef<string>("");
-  const activeAssetLocks = useRef<Set<string>>(new Set());
 
   const addLog = (type: ActivityLog['type'], message: string) => {
     const newLog: ActivityLog = {
@@ -74,133 +84,34 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActivityLogs(prev => [newLog, ...prev].slice(0, 50));
   };
 
-  const moveToHistory = (signal: ActiveSignal) => {
-    const isWin = Math.random() > 0.2;
-    const pips = isWin ? signal.tp1_pips : -signal.sl_pips;
-    
-    const historyItem = {
-      ...signal,
-      id: `hist-${Date.now()}-${signal.asset}`,
-      time: new Date().toISOString(),
-      status: isWin ? 'WIN' : 'LOSS',
-      pips: parseFloat(pips.toFixed(1)),
-      zone: signal.entry.toFixed(signal.asset.includes('JPY') ? 3 : 5)
-    };
-
-    setSignalHistory(prev => [historyItem, ...prev]);
-    addLog('info', `SINAL FINALIZADO: ${signal.asset} movido para o histórico.`);
-    
-    activeAssetLocks.current.delete(signal.asset);
-    setActiveSignal(null);
-  };
-
-  const fetchAssetData = async (targetAsset: Asset) => {
-    try {
-      const symbol = targetAsset.slice(0,3) + targetAsset.slice(3);
-      const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}USDT&interval=1m&limit=100`).catch(() => null);
-      
-      let formattedCandles: Candle[] = [];
-      if (response && response.ok) {
-        const data = await response.json();
-        formattedCandles = data.map((v: any) => ({
-          time: v[0] / 1000,
-          open: parseFloat(v[1]),
-          high: parseFloat(v[2]),
-          low: parseFloat(v[3]),
-          close: parseFloat(v[4]),
-          volume: parseFloat(v[5])
-        }));
-      } else {
-        formattedCandles = generateMockCandles(100, targetAsset.includes('JPY') ? 150 : 1.1);
-      }
-
-      const analysis = analyzeWSBot(formattedCandles, targetAsset, 'M1');
-      
-      setAllAssetsData(prev => ({
-        ...prev,
-        [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
-      }));
-
-      if (isMarketOpen && analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
-        const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
-        
-        if (lastSignalIdRef.current !== signalId) {
-          lastSignalIdRef.current = signalId;
-          activeAssetLocks.current.add(targetAsset);
-          
-          const newSignal = analysis.activeSignal;
-          setActiveSignal(newSignal);
-          playAlertSound('success');
-          addLog('signal', `NOVO SINAL: ${newSignal.asset} ${newSignal.direction} detectado.`);
-          
-          setTimeout(() => {
-            moveToHistory(newSignal);
-          }, 300000);
-        }
-      }
-    } catch (error) {
-      console.error(`Data Error:`, error);
-    }
-  };
-
-  const processQueue = async () => {
-    if (isFetching.current || fetchQueue.current.length === 0) return;
-    isFetching.current = true;
-    const nextAsset = fetchQueue.current.shift();
-    if (nextAsset) await fetchAssetData(nextAsset);
-    isFetching.current = false;
-    if (fetchQueue.current.length > 0) processQueue();
-  };
-
   useEffect(() => {
-    if (!isMarketOpen) return;
-
-    const tickInterval = setInterval(() => {
-      setAllAssetsData(prev => {
-        const newData = { ...prev };
-        Object.keys(newData).forEach(key => {
-          const assetData = newData[key];
-          if (!assetData || assetData.candles.length === 0) return;
-          const lastIndex = assetData.candles.length - 1;
-          const lastCandle = { ...assetData.candles[lastIndex] };
-          const volatility = key.includes('JPY') ? 0.005 : 0.00002;
-          lastCandle.close += (Math.random() - 0.5) * volatility;
-          const newCandles = [...assetData.candles];
-          newCandles[lastIndex] = lastCandle;
-          newData[key] = { ...assetData, candles: newCandles, analysis: analyzeWSBot(newCandles, key as Asset, 'M1') };
-        });
-        return newData;
-      });
-    }, 500);
-    return () => clearInterval(tickInterval);
-  }, [isMarketOpen]);
-
-  useEffect(() => {
-    fetchQueue.current = [...activeAssets];
-    processQueue().then(() => setIsLoading(false));
-    
-    if (!isMarketOpen) return;
-
     const interval = setInterval(() => {
-      fetchQueue.current = [...activeAssets];
-      processQueue();
-    }, 30000);
+      const buyers = 40 + Math.random() * 20;
+      setMarketSentiment({ buyers, sellers: 100 - buyers });
+      
+      setSessionIndex(prev => {
+        const lastCandle = { ...prev.candles[prev.candles.length - 1] };
+        lastCandle.close += (Math.random() - 0.5) * 0.01;
+        const newCandles = [...prev.candles];
+        newCandles[newCandles.length - 1] = lastCandle;
+        return { ...prev, candles: newCandles };
+      });
+    }, 2000);
     return () => clearInterval(interval);
-  }, [activeAssets, isMarketOpen]);
+  }, []);
 
   useEffect(() => {
-    const sessionInterval = setInterval(() => {
-      const open = checkIsMarketOpen();
-      if (open !== isMarketOpen) setIsMarketOpen(open);
-      
-      const session = getMarketSession();
-      if (session !== currentSession) {
-        setCurrentSession(session);
-        setActiveAssets(SESSION_ASSETS[session] || SESSION_ASSETS['CLOSE']);
+    const fetchAll = async () => {
+      const newData: Record<string, AssetData> = {};
+      for (const a of activeAssets) {
+        const candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
+        newData[a] = { candles, analysis: analyzeWSBot(candles, a, 'M1'), lastUpdate: Date.now() };
       }
-    }, 10000);
-    return () => clearInterval(sessionInterval);
-  }, [currentSession, isMarketOpen]);
+      setAllAssetsData(newData);
+      setIsLoading(false);
+    };
+    fetchAll();
+  }, [activeAssets]);
 
   const currentData = allAssetsData[asset] || { 
     candles: [], 
@@ -208,19 +119,12 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     lastUpdate: 0 
   };
 
-  // OVERRIDE PARA FINAL DE SEMANA: BIAS NEUTRAL E P/D 0%
-  const finalAnalysis = isMarketOpen ? currentData.analysis : {
-    ...currentData.analysis,
-    d1Bias: 'NEUTRAL',
-    premiumPct: 0
-  };
-
   return (
     <TradingContext.Provider value={{
       asset, setAsset,
-      timeframe, setTimeframe,
+      timeframe, setTimeframe: () => {},
       candles: currentData.candles,
-      ...finalAnalysis,
+      ...currentData.analysis,
       activeSignal,
       signalsData: {
         ...mockSignalsData,
@@ -234,7 +138,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentSession,
       activeAssets,
       isMarketOpen,
-      allAssetsData
+      allAssetsData,
+      marketSentiment,
+      sessionIndex
     }}>
       {children}
     </TradingContext.Provider>

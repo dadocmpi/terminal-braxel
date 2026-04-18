@@ -5,7 +5,7 @@ import { WeeklyPerformance } from '../components/WeeklyPerformance';
 import { SignalHistory } from '../components/SignalHistory';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
 import { MarketBiasSummary } from '../components/MarketBiasSummary';
-import { MarketNews } from '../components/MarketNews';
+import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 
 const DataTerminal = () => {
   return (
@@ -20,7 +20,7 @@ const DataTerminal = () => {
           </div>
           
           <div className="col-span-12 lg:col-span-4 space-y-8">
-            <MarketNews />
+            <ZoneActivityFeed />
             <MarketBiasSummary />
           </div>
         </div>
