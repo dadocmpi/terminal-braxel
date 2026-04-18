@@ -2,11 +2,14 @@ import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, MousePointer2, DollarSign } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, MousePointer2, DollarSign, FlaskConical } from 'lucide-react';
 
 export const ActiveSignal = () => {
   const { activeSignal, premiumPct } = useTrading();
   const signal = activeSignal;
+
+  // Verifica se é final de semana para o selo de simulação
+  const isWeekend = new Date().getUTCDay() === 6 || new Date().getUTCDay() === 0;
 
   if (!signal) return (
     <div className="p-12 text-center border-b border-white/5 bg-black">
@@ -27,11 +30,12 @@ export const ActiveSignal = () => {
             <AlertTriangle className="w-4 h-4 text-primary animate-pulse" />
             <span className="text-[10px] font-black tracking-[0.3em] text-primary uppercase">High Probability Execution Window</span>
           </div>
-          <div className="h-4 w-px bg-white/10" />
-          <div className="flex items-center gap-2 bg-bull/10 px-3 py-1 border border-bull/20">
-            <MousePointer2 className="w-3 h-3 text-bull animate-bounce" />
-            <span className="text-[9px] font-black text-bull uppercase tracking-widest">Instant Execution</span>
-          </div>
+          {isWeekend && (
+            <div className="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 border border-yellow-500/20">
+              <FlaskConical className="w-3 h-3 text-yellow-500" />
+              <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Simulation Mode</span>
+            </div>
+          )}
         </div>
         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Detected: {new Date().toLocaleTimeString()}</span>
       </div>

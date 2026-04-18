@@ -29,10 +29,9 @@ const MarketClosedOverlay = () => (
 const DashboardContent = () => {
   const { activeAssets, isMarketOpen } = useTrading();
 
+  // Overlay removido temporariamente para desenvolvimento (isMarketOpen forçado no Context)
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {!isMarketOpen && <MarketClosedOverlay />}
-      
       <DashboardHeader />
       
       <main className="w-full">
