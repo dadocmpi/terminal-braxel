@@ -2,14 +2,11 @@ import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, DollarSign, PowerOff } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, DollarSign } from 'lucide-react';
 
 export const ActiveSignal = () => {
   const { activeSignal, premiumPct } = useTrading();
   const signal = activeSignal;
-
-  // Verifica se é final de semana real para o estado de descanso
-  const isWeekend = new Date().getUTCDay() === 6 || new Date().getUTCDay() === 0;
 
   if (!signal) return (
     <div className="p-16 text-center border-b border-white/5 bg-black relative overflow-hidden">
@@ -17,34 +14,15 @@ export const ActiveSignal = () => {
            style={{ backgroundImage: 'radial-gradient(circle, #EAB308 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
       
       <div className="flex flex-col items-center justify-center gap-4 relative z-10">
-        {isWeekend ? (
-          <>
-            <div className="w-12 h-12 rounded-none border border-white/10 flex items-center justify-center bg-white/5">
-              <PowerOff className="w-6 h-6 text-muted-foreground/50" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.4em]">
-                ALGORITHM STATUS: <span className="text-primary">RESTING</span>
-              </p>
-              <p className="text-[9px] text-muted-foreground/40 font-mono uppercase tracking-widest">
-                Market Closed // Institutional Engine Off-Duty
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
-            <p className="text-primary font-black text-[10px] uppercase tracking-[0.4em]">
-              SCANNING INSTITUTIONAL FLOW...
-            </p>
-          </>
-        )}
+        <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+        <p className="text-primary font-black text-[10px] uppercase tracking-[0.4em]">
+          SCANNING INSTITUTIONAL FLOW...
+        </p>
       </div>
     </div>
   );
 
   const isShort = signal.direction === 'SELL';
-  const isPdAligned = isShort ? premiumPct > 50 : premiumPct < 50;
 
   return (
     <Card className={`bg-black border-x-0 border-t-0 border-b-4 rounded-none overflow-hidden ${isShort ? 'border-b-bear' : 'border-b-bull'}`}>

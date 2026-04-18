@@ -8,6 +8,7 @@ import { LayoutDashboard, BarChart3, Activity, ShieldCheck } from 'lucide-react'
 export const DashboardHeader = () => {
   const { isMarketOpen } = useTrading();
   const location = useLocation();
+  const isTerminal1 = location.pathname === '/';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black px-6 py-3 flex items-center justify-between">
@@ -17,7 +18,7 @@ export const DashboardHeader = () => {
         <nav className="flex items-center gap-1">
           <Link 
             to="/" 
-            className={`flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${location.pathname === '/' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-white'}`}
+            className={`flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${isTerminal1 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-white'}`}
           >
             <LayoutDashboard className="w-3 h-3" />
             Terminal 01: Live
@@ -37,7 +38,7 @@ export const DashboardHeader = () => {
           <div className="flex items-center gap-2">
             <Activity className={`w-3 h-3 ${isMarketOpen ? 'text-bull animate-pulse' : 'text-bear'}`} />
             <span className={`text-[9px] font-mono uppercase ${isMarketOpen ? 'text-bull' : 'text-bear'}`}>
-              {isMarketOpen ? 'Market Live' : 'Market Closed'}
+              {isMarketOpen ? 'Market Live' : 'Offline'}
             </span>
           </div>
           <div className="hidden sm:flex items-center gap-2">
@@ -45,15 +46,8 @@ export const DashboardHeader = () => {
             <span className="text-[9px] font-mono text-muted-foreground uppercase">Secure Node</span>
           </div>
         </div>
-        <RiskCalculator />
+        {isTerminal1 && <RiskCalculator />}
       </div>
     </header>
   );
 };
-
-const HeaderStat = ({ label, value, color }: { label: string, value: string, color: string }) => (
-  <div className="flex flex-col gap-1">
-    <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest">{label}</span>
-    <span className={`text-[10px] font-bold uppercase ${color}`}>{value}</span>
-  </div>
-);

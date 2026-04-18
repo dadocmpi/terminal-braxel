@@ -5,29 +5,15 @@ import { StatusCards } from '../components/StatusCards';
 import { ActiveSignal } from '../components/ActiveSignal';
 import { MiniChart } from '../components/MiniChart';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
-import { Lock } from 'lucide-react';
 
 const LiveTerminal = () => {
-  const { activeAssets, isMarketOpen } = useTrading();
+  const { activeAssets } = useTrading();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DashboardHeader />
       
       <main className="w-full relative">
-        {/* Bloqueio de Final de Semana */}
-        {!isMarketOpen && (
-          <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
-            <div className="w-16 h-16 border border-white/10 flex items-center justify-center mb-6 bg-white/5">
-              <Lock className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-2xl font-black tracking-[0.3em] text-white uppercase mb-2">Terminal Locked</h2>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest max-w-md">
-              The institutional execution engine is offline. Live data and signal generation will resume at London Open.
-            </p>
-          </div>
-        )}
-
         <StatusCards />
         <ActiveSignal />
         
