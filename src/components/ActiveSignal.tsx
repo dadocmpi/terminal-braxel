@@ -2,7 +2,7 @@ import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, MousePointer2, DollarSign, FlaskConical } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, DollarSign, FlaskConical, PowerOff } from 'lucide-react';
 
 export const ActiveSignal = () => {
   const { activeSignal, premiumPct } = useTrading();
@@ -12,10 +12,34 @@ export const ActiveSignal = () => {
   const isWeekend = new Date().getUTCDay() === 6 || new Date().getUTCDay() === 0;
 
   if (!signal) return (
-    <div className="p-12 text-center border-b border-white/5 bg-black">
-      <p className="text-primary font-black text-[10px] animate-pulse uppercase tracking-[0.4em]">
-        SCANNING INSTITUTIONAL FLOW...
-      </p>
+    <div className="p-16 text-center border-b border-white/5 bg-black relative overflow-hidden">
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
+           style={{ backgroundImage: 'radial-gradient(circle, #EAB308 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+      
+      <div className="flex flex-col items-center justify-center gap-4 relative z-10">
+        {isWeekend ? (
+          <>
+            <div className="w-12 h-12 rounded-none border border-white/10 flex items-center justify-center bg-white/5">
+              <PowerOff className="w-6 h-6 text-muted-foreground/50" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.4em]">
+                ALGORITHM STATUS: <span className="text-bear">SLEEP_MODE</span>
+              </p>
+              <p className="text-[9px] text-muted-foreground/40 font-mono uppercase tracking-widest">
+                Market Closed // Execution Engine Paused
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+            <p className="text-primary font-black text-[10px] uppercase tracking-[0.4em]">
+              SCANNING INSTITUTIONAL FLOW...
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 
@@ -30,12 +54,6 @@ export const ActiveSignal = () => {
             <AlertTriangle className="w-4 h-4 text-primary animate-pulse" />
             <span className="text-[10px] font-black tracking-[0.3em] text-primary uppercase">High Probability Execution Window</span>
           </div>
-          {isWeekend && (
-            <div className="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 border border-yellow-500/20">
-              <FlaskConical className="w-3 h-3 text-yellow-500" />
-              <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Simulation Mode</span>
-            </div>
-          )}
         </div>
         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Detected: {new Date().toLocaleTimeString()}</span>
       </div>

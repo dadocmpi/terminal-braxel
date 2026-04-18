@@ -35,34 +35,11 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 const getMarketSession = (): MarketSession => {
   // FORÇADO PARA DESENVOLVIMENTO (SÁBADO/DOMINGO)
   return 'NEW_YORK'; 
-  
-  /* Lógica Original:
-  const nyTime = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    hour: 'numeric',
-    hour12: false
-  }).format(new Date());
-  const hour = parseInt(nyTime);
-  if (hour >= 3 && hour < 11) return 'LONDON';
-  if (hour >= 8 && hour < 17) return 'NEW_YORK';
-  if (hour >= 19 || hour < 4) return 'TOKYO';
-  return 'CLOSE';
-  */
 };
 
 const checkIsMarketOpen = () => {
-  // FORÇADO PARA DESENVOLVIMENTO
+  // FORÇADO PARA DESENVOLVIMENTO (Interface ativa)
   return true; 
-
-  /* Lógica Original:
-  const now = new Date();
-  const day = now.getUTCDay();
-  const hour = now.getUTCHours();
-  if (day === 6) return false; 
-  if (day === 5 && hour >= 21) return false; 
-  if (day === 0 && hour < 21) return false; 
-  return true;
-  */
 };
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -141,9 +118,12 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      const isAssetInTradingSession = currentSession !== 'CLOSE' && SESSION_ASSETS[currentSession].includes(targetAsset);
+      // VERIFICAÇÃO DE FINAL DE SEMANA REAL
+      const now = new Date();
+      const isRealWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
 
-      if (isAssetInTradingSession && analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
+      // SÓ GERA SINAL SE NÃO FOR FINAL DE SEMANA
+      if (!isRealWeekend && analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
         const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
         
         if (lastSignalIdRef.current !== signalId) {
@@ -153,7 +133,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const newSignal = analysis.activeSignal;
           setActiveSignal(newSignal);
           playAlertSound('success');
-          addLog('signal', `NOVO SINAL: ${newSignal.asset} ${newSignal.direction} detectado na sessão ${currentSession}.`);
+          addLog('signal', `NOVO SINAL: ${newSignal.asset} ${newSignal.direction} detectado.`);
           
           setTimeout(() => {
             moveToHistory(newSignal);
