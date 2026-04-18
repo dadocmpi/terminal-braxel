@@ -1,11 +1,20 @@
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
-import { AlertTriangle, CheckCircle2, Timer } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Timer, Coffee } from 'lucide-react';
 
 export const StatusCards = () => {
-  const { d1Bias, premiumPct } = useTrading();
+  const { d1Bias, premiumPct, isMarketOpen } = useTrading();
   
   const getMarketCondition = () => {
+    if (!isMarketOpen || d1Bias === 'NEUTRAL') {
+      return { 
+        label: "MARKET CLOSED", 
+        sub: "ALGORITHM ON STANDBY", 
+        color: "text-muted-foreground", 
+        icon: <Coffee className="w-4 h-4" /> 
+      };
+    }
+
     const isPremium = premiumPct > 60;
     const isDiscount = premiumPct < 40;
     const isEquilibrium = !isPremium && !isDiscount;
@@ -29,12 +38,22 @@ export const StatusCards = () => {
       <div className="col-span-12 lg:col-span-6 p-8 border-r border-white/5 bg-[#050401]">
         <span className="text-[10px] text-primary/70 uppercase tracking-[0.3em] font-black">SESSION BIAS</span>
         <div className="mt-4">
-          <h2 className={`text-3xl font-black tracking-tighter uppercase ${d1Bias === 'BUY' ? 'text-bull glow-text-bull' : 'text-bear glow-text-bear'}`}>
-            {d1Bias === 'BUY' ? 'BULLISH' : 'BEARISH'}
+          <h2 className={`text-3xl font-black tracking-tighter uppercase ${
+            d1Bias === 'BUY' ? 'text-bull glow-text-bull' : 
+            d1Bias === 'SELL' ? 'text-bear glow-text-bear' : 
+            'text-muted-foreground'
+          }`}>
+            {d1Bias === 'BUY' ? 'BULLISH' : d1Bias === 'SELL' ? 'BEARISH' : 'NEUTRAL'}
           </h2>
           <div className="flex items-center gap-2 mt-3">
-            <div className={`w-1 h-1 rounded-full animate-pulse ${d1Bias === 'BUY' ? 'bg-bull' : 'bg-bear'}`} />
-            <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-widest opacity-50">Order Flow Directional</p>
+            <div className={`w-1 h-1 rounded-full ${
+              d1Bias === 'BUY' ? 'bg-bull animate-pulse' : 
+              d1Bias === 'SELL' ? 'bg-bear animate-pulse' : 
+              'bg-muted-foreground'
+            }`} />
+            <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-widest opacity-50">
+              {d1Bias === 'NEUTRAL' ? 'Institutional Engine Resting' : 'Order Flow Directional'}
+            </p>
           </div>
         </div>
       </div>
@@ -66,7 +85,9 @@ export const StatusCards = () => {
           </div>
           
           <div 
-            className="absolute top-0 bottom-0 w-0.5 bg-primary shadow-[0_0_10px_#EAB308] z-10 transition-all duration-1000 ease-in-out" 
+            className={`absolute top-0 bottom-0 w-0.5 z-10 transition-all duration-1000 ease-in-out ${
+              isMarketOpen ? 'bg-primary shadow-[0_0_10px_#EAB308]' : 'bg-muted-foreground opacity-30'
+            }`} 
             style={{ left: `${premiumPct}%`, transform: 'translateX(-50%)' }} 
           />
         </div>
