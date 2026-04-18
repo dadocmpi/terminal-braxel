@@ -1,19 +1,40 @@
 import React from 'react';
+import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Calendar as CalendarIcon, TrendingUp, CheckCircle2, XCircle } from 'lucide-react';
 
-const weeklyData = [
-  { day: 'MON', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
-  { day: 'TUE', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
-  { day: 'WED', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
-  { day: 'THU', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
-  { day: 'FRI', date: '--/--', pips: 0, wins: 0, losses: 0, status: 'pending' },
-];
-
 export const WeeklyPerformance = () => {
-  const totalWins = weeklyData.reduce((acc, curr) => acc + curr.wins, 0);
-  const totalLosses = weeklyData.reduce((acc, curr) => acc + curr.losses, 0);
-  const winRate = totalWins + totalLosses > 0 ? Math.round((totalWins / (totalWins + totalLosses)) * 100) : 0;
+  const { signalsData } = useTrading();
+  const history = signalsData.signals;
+
+  // Cálculo dinâmico baseado no histórico real
+  const totalWins = history.filter(s => s.status === 'WIN').length;
+  const totalLosses = history.filter(s => s.status === 'LOSS').length;
+  const totalSignals = totalWins + totalLosses;
+  const winRate = totalSignals > 0 ? Math.round((totalWins / totalSignals) * 100) : 0;
+  const totalPips = history.reduce((acc, curr) => acc + curr.pips, 0);
+
+  // Mapeamento simplificado para os dias da semana (Mock para visualização)
+  const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+  const weeklyStats = days.map(day => {
+    const daySignals = history.filter(s => {
+      const date = new Date(s.time);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+      return dayName === day;
+    });
+
+    const dayWins = daySignals.filter(s => s.status === 'WIN').length;
+    const dayLosses = daySignals.filter(s => s.status === 'LOSS').length;
+    const dayPips = daySignals.reduce((acc, curr) => acc + curr.pips, 0);
+
+    return {
+      day,
+      pips: dayPips,
+      wins: dayWins,
+      losses: dayLosses,
+      status: daySignals.length === 0 ? 'pending' : dayPips >= 0 ? 'win' : 'loss'
+    };
+  });
 
   return (
     <Card className="bg-black border-white/5 rounded-none overflow-hidden">
@@ -22,7 +43,9 @@ export const WeeklyPerformance = () => {
         <div className="col-span-12 lg:col-span-3 p-8 border-r border-white/5 bg-[#050505] flex flex-col justify-center">
           <span className="text-[10px] text-primary font-black uppercase tracking-[0.3em] mb-2">Weekly Win Rate</span>
           <div className="flex items-baseline gap-2">
-            <h2 className="text-6xl font-black tracking-tighter text-white glow-text-gold">{winRate}%</h2>
+            <h2 className="text-6xl font-black tracking-tighter text-white glow-text-gold">
+              {totalSignals > 0 ? winRate : '--'}%
+            </h2>
             <TrendingUp className="w-6 h-6 text-muted-foreground/20" />
           </div>
           <div className="mt-4 flex gap-4">
@@ -40,7 +63,7 @@ export const WeeklyPerformance = () => {
         {/* Weekly Calendar */}
         <div className="col-span-12 lg:col-span-9 p-0">
           <div className="grid grid-cols-5 h-full">
-            {weeklyData.map((item, idx) => (
+            {weeklyStats.map((item) => (
               <div 
                 key={item.day} 
                 className={`p-6 border-r border-white/5 last:border-r-0 flex flex-col justify-between transition-colors hover:bg-white/[0.02] ${item.status === 'pending' ? 'opacity-40' : ''}`}
@@ -48,10 +71,9 @@ export const WeeklyPerformance = () => {
                 <div>
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-[10px] font-black text-muted-foreground tracking-widest">{item.day}</span>
-                    <span className="text-[9px] font-mono text-muted-foreground/50">{item.date}</span>
                   </div>
                   <div className={`text-lg font-mono font-bold ${item.pips >= 0 ? 'text-bull' : 'text-bear'}`}>
-                    {item.pips > 0 ? `+${item.pips}` : item.pips} <span className="text-[10px] opacity-50">pips</span>
+                    {item.pips > 0 ? `+${item.pips.toFixed(1)}` : item.pips.toFixed(1)} <span className="text-[10px] opacity-50">pips</span>
                   </div>
                 </div>
 
