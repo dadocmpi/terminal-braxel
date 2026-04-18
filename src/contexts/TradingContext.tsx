@@ -33,19 +33,22 @@ interface TradingContextType {
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 const getMarketSession = (): MarketSession => {
-  // FORÇADO PARA DESENVOLVIMENTO (SÁBADO/DOMINGO)
+  const now = new Date();
+  const isWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
+  if (isWeekend) return 'CLOSE';
   return 'NEW_YORK'; 
 };
 
 const checkIsMarketOpen = () => {
-  // FORÇADO PARA DESENVOLVIMENTO (Interface ativa)
-  return true; 
+  const now = new Date();
+  const isWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
+  return !isWeekend; 
 };
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isMarketOpen, setIsMarketOpen] = useState(checkIsMarketOpen());
   const [currentSession, setCurrentSession] = useState<MarketSession>(getMarketSession());
-  const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession]);
+  const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession] || SESSION_ASSETS['CLOSE']);
   const [asset, setAsset] = useState<Asset>(activeAssets[0] || 'EURUSD');
   const [timeframe, setTimeframe] = useState<Timeframe>('M1');
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
@@ -118,11 +121,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      // VERIFICAÇÃO DE FINAL DE SEMANA REAL
       const now = new Date();
       const isRealWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
 
-      // SÓ GERA SINAL SE NÃO FOR FINAL DE SEMANA
       if (!isRealWeekend && analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
         const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
         
@@ -155,7 +156,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
+    // SÓ ATUALIZA PREÇOS SE O MERCADO ESTIVER ABERTO
     if (!isMarketOpen) return;
+
     const tickInterval = setInterval(() => {
       setAllAssetsData(prev => {
         const newData = { ...prev };
@@ -179,24 +182,30 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     fetchQueue.current = [...activeAssets];
     processQueue().then(() => setIsLoading(false));
+    
+    // SÓ BUSCA NOVOS DADOS SE O MERCADO ESTIVER ABERTO
+    if (!isMarketOpen) return;
+
     const interval = setInterval(() => {
       fetchQueue.current = [...activeAssets];
       processQueue();
     }, 30000);
     return () => clearInterval(interval);
-  }, [activeAssets]);
+  }, [activeAssets, isMarketOpen]);
 
   useEffect(() => {
     const sessionInterval = setInterval(() => {
-      setIsMarketOpen(checkIsMarketOpen());
+      const open = checkIsMarketOpen();
+      if (open !== isMarketOpen) setIsMarketOpen(open);
+      
       const session = getMarketSession();
       if (session !== currentSession) {
         setCurrentSession(session);
-        setActiveAssets(SESSION_ASSETS[session]);
+        setActiveAssets(SESSION_ASSETS[session] || SESSION_ASSETS['CLOSE']);
       }
     }, 10000);
     return () => clearInterval(sessionInterval);
-  }, [currentSession]);
+  }, [currentSession, isMarketOpen]);
 
   const currentData = allAssetsData[asset] || { 
     candles: [], 
