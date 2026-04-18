@@ -8,7 +8,7 @@ export const ActiveSignal = () => {
   const { activeSignal, premiumPct } = useTrading();
   const signal = activeSignal;
 
-  // Verifica se é final de semana real para o estado de sleep
+  // Verifica se é final de semana real para o estado de descanso
   const isWeekend = new Date().getUTCDay() === 6 || new Date().getUTCDay() === 0;
 
   if (!signal) return (
@@ -24,10 +24,10 @@ export const ActiveSignal = () => {
             </div>
             <div className="space-y-1">
               <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.4em]">
-                ALGORITHM STATUS: <span className="text-bear">SLEEP_MODE</span>
+                ALGORITHM STATUS: <span className="text-primary">RESTING</span>
               </p>
               <p className="text-[9px] text-muted-foreground/40 font-mono uppercase tracking-widest">
-                Market Closed // Execution Engine Paused
+                Market Closed // Institutional Engine Off-Duty
               </p>
             </div>
           </>
