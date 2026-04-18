@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType, ISeriesApi } from 'lightweight-charts';
 import { Asset } from '../types/trading';
 import { useTrading } from '../contexts/TradingContext';
-import { Lock } from 'lucide-react';
+import { Lock, BarChart2 } from 'lucide-react';
 
 export const MiniChart = ({ asset }: { asset: Asset }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -20,18 +20,17 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 750, // Aumentado significativamente para esticar o terminal
+      height: 220,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#64748b',
-        fontSize: 10,
+        textColor: '#475569',
+        fontSize: 9,
       },
-      grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255, 255, 255, 0.03)' } },
-      timeScale: { visible: false, borderVisible: false },
-      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.1 } },
+      grid: { vertLines: { color: 'rgba(255, 255, 255, 0.02)' }, horzLines: { color: 'rgba(255, 255, 255, 0.02)' } },
+      timeScale: { visible: false },
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.2, bottom: 0.2 } },
       handleScroll: false,
       handleScale: false,
-      watermark: { visible: false }
     } as any);
 
     const series = chart.addCandlestickSeries({
@@ -45,18 +44,7 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
     seriesRef.current = series;
     chartRef.current = chart;
 
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      chart.remove();
-    };
+    return () => chart.remove();
   }, [isClosed]);
 
   useEffect(() => {
@@ -67,38 +55,33 @@ export const MiniChart = ({ asset }: { asset: Asset }) => {
   }, [assetData, isClosed]);
 
   return (
-    <div className="bg-transparent overflow-hidden group transition-colors hover:bg-white/[0.02] relative h-full flex flex-col">
-      <div className="p-4 flex justify-between items-center border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-black tracking-tighter text-white group-hover:text-primary transition-colors">
-            {isClosed ? '---' : asset}
-          </span>
-          <span className={`text-[8px] font-mono px-2 py-0.5 rounded-none border ${status === 'live' && !isClosed ? 'text-bull border-bull/20 bg-bull/5' : 'text-muted-foreground border-white/10 bg-white/5'}`}>
-            {isClosed ? 'OFFLINE' : status === 'live' ? 'M1 LIVE' : 'CONNECTING...'}
-          </span>
+    <div className="bg-black border-r border-white/5 relative h-full flex flex-col">
+      <div className="terminal-header flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <BarChart2 className="w-2.5 h-2.5" />
+          <span>{asset} // M1_FEED</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] font-mono font-bold text-primary tabular-nums">
-            {!isClosed && currentPrice > 0 ? currentPrice.toFixed(asset.includes('JPY') ? 2 : 5) : '---'}
-          </span>
-          <div className={`w-1 h-1 rounded-full ${status === 'live' && !isClosed ? 'bg-bull animate-pulse' : 'bg-muted'}`} />
-        </div>
+        <span className="text-primary font-mono">{currentPrice > 0 ? currentPrice.toFixed(asset.includes('JPY') ? 3 : 5) : '---'}</span>
       </div>
       
-      <div className="relative w-full flex-1 min-h-[750px]">
+      <div className="relative flex-1 min-h-[220px]">
         {isClosed ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] z-10">
-            <Lock className="w-8 h-8 text-primary/40 mb-3" />
-            <span className="text-[10px] font-black text-primary/60 uppercase tracking-[0.3em]">Esperando abertura</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10">
+            <Lock className="w-4 h-4 text-muted-foreground mb-2" />
+            <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Market Offline</span>
           </div>
         ) : (
           <div ref={chartContainerRef} className="w-full h-full" />
         )}
       </div>
       
-      <div className="p-3 bg-black/40 flex justify-between items-center border-t border-white/5">
-        <span className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Institutional Feed</span>
-        <span className="text-[8px] font-mono text-white/40">SYNC: {assetData && !isClosed ? 'OK' : 'WAIT'}</span>
+      <div className="px-3 py-1 bg-white/[0.02] border-t border-white/5 flex justify-between items-center">
+        <div className="flex gap-2">
+          <div className="w-1 h-1 bg-bull" />
+          <div className="w-1 h-1 bg-bear" />
+          <div className="w-1 h-1 bg-primary" />
+        </div>
+        <span className="text-[7px] font-mono text-muted-foreground uppercase">Institutional Liquidity: High</span>
       </div>
     </div>
   );

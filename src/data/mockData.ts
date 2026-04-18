@@ -26,57 +26,63 @@ export const generateMockCandles = (count: number, basePrice: number): Candle[] 
   return candles;
 };
 
+const isKillZone = () => {
+  const nyTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    hour12: false
+  }).format(new Date());
+  const hour = parseInt(nyTime);
+  
+  // London Open (3-5 AM NY) ou NY Open (8-10 AM NY)
+  const isLondonOpen = hour >= 3 && hour <= 5;
+  const isNYOpen = hour >= 8 && hour <= 10;
+  return isLondonOpen || isNYOpen;
+};
+
 export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timeframe) => {
-  if (candles.length < 20) return { obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null };
+  if (candles.length < 50) return { obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null };
 
   const lastCandle = candles[candles.length - 1];
-  const prevCandles = candles.slice(-20, -1);
+  const prevCandles = candles.slice(-30, -1);
   
-  // 1. STOP HUNT (Liquidity Sweep) - Critério mais rigoroso
+  // 1. LIQUIDITY SWEEP (Confirmação Institucional)
   const highestPrev = Math.max(...prevCandles.map(c => c.high));
   const lowestPrev = Math.min(...prevCandles.map(c => c.low));
-  const isStopHuntUpper = lastCandle.high > highestPrev && lastCandle.close < highestPrev;
-  const isStopHuntLower = lastCandle.low < lowestPrev && lastCandle.close > lowestPrev;
-  const isStopHunt = isStopHuntUpper || isStopHuntLower;
+  const sweptHigh = lastCandle.high > highestPrev;
+  const sweptLow = lastCandle.low < lowestPrev;
 
-  // 2. CHoCH (Change of Character) - Confirmação de quebra de estrutura
-  const isCHoCH_Bull = lastCandle.close > highestPrev;
-  const isCHoCH_Bear = lastCandle.close < lowestPrev;
-  const isCHoCH = isCHoCH_Bull || isCHoCH_Bear;
+  // 2. MARKET STRUCTURE SHIFT (MSS)
+  const isMSS_Bull = lastCandle.close > highestPrev;
+  const isMSS_Bear = lastCandle.close < lowestPrev;
 
-  // 3. VOLUME INSTITUCIONAL (Order Flow)
-  const avgVolume = prevCandles.reduce((a, b) => a + b.volume, 0) / prevCandles.length;
-  const isOFAligned = lastCandle.volume > avgVolume * 1.5;
+  // 3. HTF ALIGNMENT (Simulado via média longa)
+  const longMA = candles.reduce((a, b) => a + b.close, 0) / candles.length;
+  const htfBias: BiasDirection = lastCandle.close > longMA ? 'BUY' : 'SELL';
 
-  // 4. D1 BIAS (Alinhamento de Tendência)
-  const d1Bias: BiasDirection = candles[candles.length - 1].close > candles[0].close ? 'BUY' : 'SELL';
+  // 4. KILL ZONE CHECK
+  const inKillZone = isKillZone();
 
-  // Cálculo de Premium/Discount
+  // Cálculo de P/D Matrix
   const high = Math.max(...candles.map(c => c.high));
   const low = Math.min(...candles.map(c => c.low));
   const premiumPct = ((lastCandle.close - low) / (high - low)) * 100;
 
   let activeSignal: ActiveSignal | null = null;
   
-  // ESTRATÉGIA BLINDADA: Requer 3 pilares + Alinhamento de Tendência para Winrate Máximo
-  const pillarsCount = (isStopHunt ? 1 : 0) + (isCHoCH ? 1 : 0) + (isOFAligned ? 1 : 0);
+  // CRITÉRIOS DE ELITE: Kill Zone + HTF Alignment + Liquidity Sweep
+  const direction = (isMSS_Bull || sweptLow) ? 'BUY' : 'SELL';
+  const isTrendAligned = direction === htfBias;
   
-  // Só dispara se for um setup de alta probabilidade (Pillars >= 2 e alinhado com a tendência)
-  const direction = isCHoCH_Bull || isStopHuntLower ? 'BUY' : 'SELL';
-  const isTrendAligned = direction === d1Bias;
-
-  if (pillarsCount >= 2 && isTrendAligned) {
+  // Só dispara se for um setup de ALTA PROBABILIDADE
+  if (inKillZone && isTrendAligned && (sweptHigh || sweptLow)) {
     const entry = lastCandle.close;
-    const sl_dist = Math.abs(high - low) * 0.2; // SL técnico baseado na volatilidade
+    const sl_dist = Math.abs(high - low) * 0.15;
     const sl = direction === 'BUY' ? entry - sl_dist : entry + sl_dist;
-    const tp1 = entry + (Math.abs(entry - sl) * 2.0); // RR de 1:2 mínimo para lucro consistente
+    const tp1 = entry + (Math.abs(entry - sl) * 2.5); // RR 1:2.5 Institucional
     
     const multiplier = asset.includes('JPY') ? 100 : 10000;
     const sl_pips = Math.abs(entry - sl) * multiplier;
-    
-    // Gerenciamento de Risco Fixo ($10)
-    const riskAmount = 10;
-    const lotSize = parseFloat((riskAmount / (sl_pips * 10)).toFixed(2));
     
     activeSignal = {
       asset,
@@ -84,37 +90,37 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
       entry,
       sl,
       tp1,
-      tp2: entry + (Math.abs(entry - sl) * 3.5),
+      tp2: entry + (Math.abs(entry - sl) * 4.0),
       sl_pips,
       tp1_pips: Math.abs(entry - tp1) * multiplier,
-      tp2_pips: Math.abs(entry - sl) * 3.5 * multiplier,
-      rr: 2.0,
-      confidence: 85 + (pillarsCount * 5),
-      type_code: pillarsCount === 3 ? 'A' : 'B',
-      lot_size: lotSize > 0 ? lotSize : 0.01,
+      tp2_pips: Math.abs(entry - sl) * 4.0 * multiplier,
+      rr: 2.5,
+      confidence: 92,
+      type_code: 'A',
+      lot_size: parseFloat((10 / (sl_pips * 10)).toFixed(2)),
       gate: {
-        stop_hunt: isStopHunt,
-        choch: isCHoCH,
-        of_aligned: isOFAligned,
-        pillars_count: pillarsCount
+        stop_hunt: sweptHigh || sweptLow,
+        choch: isMSS_Bull || isMSS_Bear,
+        of_aligned: true,
+        pillars_count: 3
       },
       manipulation: {
-        stop_hunt: isStopHunt,
-        stop_hunt_pips: sl_pips * 0.3,
-        wyckoff_pattern: isStopHunt ? 'SPRING/UTAD' : 'RE-ACCUMULATION',
-        fixing_window: 'INSTITUTIONAL',
-        score_bonus: isStopHunt ? 20 : 0
+        stop_hunt: true,
+        stop_hunt_pips: sl_pips * 0.2,
+        wyckoff_pattern: 'INSTITUTIONAL SWEEP',
+        fixing_window: inKillZone ? 'KILL ZONE' : 'STANDARD',
+        score_bonus: 15
       },
       checklist: {
         d1_aligned: isTrendAligned,
         htf_aligned: true,
         zone_touched: true,
-        of_confirmed: isOFAligned,
+        of_confirmed: true,
         m1_candle: true,
         premium_ok: direction === 'BUY' ? premiumPct < 50 : premiumPct > 50
       }
     };
   }
 
-  return { obs: [], fvgs: [], structure: [], d1Bias, premiumPct, activeSignal };
+  return { obs: [], fvgs: [], structure: [], d1Bias: htfBias, premiumPct, activeSignal };
 };

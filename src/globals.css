@@ -4,23 +4,23 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
+    --background: 0 0% 2%;
     --foreground: 0 0% 98%;
 
-    --card: 0 0% 2%;
+    --card: 0 0% 3%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 2%;
+    --popover: 0 0% 3%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 45 93% 47%; /* Dourado Braxel */
+    --primary: 45 93% 47%; 
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 7%;
+    --secondary: 0 0% 8%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 5%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 0% 6%;
+    --muted-foreground: 0 0% 50%;
 
     --accent: 45 93% 47%;
     --accent-foreground: 0 0% 0%;
@@ -28,13 +28,12 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 10%;
-    --input: 0 0% 10%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
     --ring: 45 93% 47%;
 
-    --radius: 0.1rem;
+    --radius: 0rem; /* TERMINAL LOOK: ZERO RADIUS */
 
-    /* Trading-specific tokens */
     --bull: 142 70% 45%;
     --bear: 0 84% 60%;
   }
@@ -45,28 +44,34 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased overflow-x-hidden;
+    @apply bg-background text-foreground font-mono antialiased overflow-x-hidden;
     background-image: 
-      linear-gradient(to right, rgba(255,255,255,0.01) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.01) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 }
 
-/* Remove TradingView Watermark/Logo */
-div[class*="tv-lightweight-charts"] table tr:last-child,
-div[class*="tv-lightweight-charts"] .tv-lightweight-charts-watermark {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
+/* Estilo de Terminal */
+.terminal-border {
+  @apply border border-white/10;
 }
 
-@layer components {
-  .terminal-card {
-    @apply bg-[#050505] border-[#111111] rounded-none;
-  }
+.terminal-header {
+  @apply bg-secondary/50 border-b border-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground;
+}
 
-  .glow-text-gold { text-shadow: 0 0 15px hsla(45, 93%, 47%, 0.3); }
-  .glow-text-bull { text-shadow: 0 0 10px hsla(var(--bull), 0.4); }
-  .glow-text-bear { text-shadow: 0 0 10px hsla(var(--bear), 0.4); }
+/* Scrollbar de Terminal */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-black;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/50;
 }
