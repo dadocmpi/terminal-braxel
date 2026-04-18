@@ -2,13 +2,13 @@ import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, DollarSign, FlaskConical, PowerOff } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, DollarSign, PowerOff } from 'lucide-react';
 
 export const ActiveSignal = () => {
   const { activeSignal, premiumPct } = useTrading();
   const signal = activeSignal;
 
-  // Verifica se é final de semana para o selo de simulação
+  // Verifica se é final de semana real para o estado de sleep
   const isWeekend = new Date().getUTCDay() === 6 || new Date().getUTCDay() === 0;
 
   if (!signal) return (
@@ -132,7 +132,7 @@ export const ActiveSignal = () => {
             <CheckItem label="HTF Structure" checked={signal.checklist.htf_aligned} />
             <CheckItem label="Liquidity Swept" checked={signal.checklist.zone_touched} />
             <CheckItem label="Order Flow" checked={signal.checklist.of_confirmed} />
-            <CheckItem label="P/D Matrix OK" checked={isPdAligned} />
+            <CheckItem label="P/D Matrix OK" checked={signal.checklist.premium_ok} />
           </div>
         </div>
       </div>
