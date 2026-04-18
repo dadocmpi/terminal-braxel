@@ -121,10 +121,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         [targetAsset]: { candles: formattedCandles, analysis, lastUpdate: Date.now() }
       }));
 
-      const now = new Date();
-      const isRealWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
-
-      if (!isRealWeekend && analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
+      if (isMarketOpen && analysis.activeSignal && !activeSignal && !activeAssetLocks.current.has(targetAsset)) {
         const signalId = `${targetAsset}-${analysis.activeSignal.direction}-${Math.floor(Date.now() / 300000)}`;
         
         if (lastSignalIdRef.current !== signalId) {
@@ -156,7 +153,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
-    // SÓ ATUALIZA PREÇOS SE O MERCADO ESTIVER ABERTO
     if (!isMarketOpen) return;
 
     const tickInterval = setInterval(() => {
@@ -183,7 +179,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     fetchQueue.current = [...activeAssets];
     processQueue().then(() => setIsLoading(false));
     
-    // SÓ BUSCA NOVOS DADOS SE O MERCADO ESTIVER ABERTO
     if (!isMarketOpen) return;
 
     const interval = setInterval(() => {
@@ -213,12 +208,19 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     lastUpdate: 0 
   };
 
+  // OVERRIDE PARA FINAL DE SEMANA: BIAS NEUTRAL E P/D 0%
+  const finalAnalysis = isMarketOpen ? currentData.analysis : {
+    ...currentData.analysis,
+    d1Bias: 'NEUTRAL',
+    premiumPct: 0
+  };
+
   return (
     <TradingContext.Provider value={{
       asset, setAsset,
       timeframe, setTimeframe,
       candles: currentData.candles,
-      ...currentData.analysis,
+      ...finalAnalysis,
       activeSignal,
       signalsData: {
         ...mockSignalsData,

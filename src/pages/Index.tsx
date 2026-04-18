@@ -11,25 +11,14 @@ import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SignalHistory } from '../components/SignalHistory';
 import { MarketBiasSummary } from '../components/MarketBiasSummary';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
+import { InstitutionalBrain } from '../components/InstitutionalBrain';
+import { MarketCalendar } from '../components/MarketCalendar';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Coffee, LayoutDashboard, BarChart3, Shield } from 'lucide-react';
-
-const MarketClosedOverlay = () => (
-  <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
-    <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-8 border border-primary/20">
-      <Coffee className="w-12 h-12 text-primary animate-bounce" />
-    </div>
-    <h2 className="text-4xl font-black tracking-tighter text-white mb-4 uppercase">Market Closed</h2>
-    <p className="text-muted-foreground max-w-md font-mono text-sm leading-relaxed uppercase tracking-widest">
-      Braxel Bot is in rest mode.
-    </p>
-  </div>
-);
 
 const DashboardContent = () => {
   const { activeAssets, isMarketOpen } = useTrading();
 
-  // Overlay removido temporariamente para desenvolvimento (isMarketOpen forçado no Context)
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       <DashboardHeader />
@@ -51,6 +40,12 @@ const DashboardContent = () => {
                   <MiniChart asset={asset} />
                 </div>
               ))}
+            </div>
+            
+            {/* NOVA SEÇÃO: BRAIN & CALENDAR */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-t border-border/50">
+              <InstitutionalBrain />
+              <MarketCalendar />
             </div>
           </div>
 
