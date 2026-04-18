@@ -13,8 +13,11 @@ import { MarketBiasSummary } from '../components/MarketBiasSummary';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
 import { InstitutionalBrain } from '../components/InstitutionalBrain';
 import { MarketCalendar } from '../components/MarketCalendar';
+import { MarketHeatmap } from '../components/MarketHeatmap';
+import { Watchlist } from '../components/Watchlist';
+import { PostCloseAnalysis } from '../components/PostCloseAnalysis';
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { Coffee, LayoutDashboard, BarChart3, Shield } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Shield, Search } from 'lucide-react';
 
 const DashboardContent = () => {
   const { activeAssets, isMarketOpen } = useTrading();
@@ -24,25 +27,37 @@ const DashboardContent = () => {
       <DashboardHeader />
       
       <main className="w-full">
-        {/* 1. EXECUÇÃO IMEDIATA */}
+        {/* 1. STATUS & EXECUÇÃO */}
         <StatusCards />
-        <ActiveSignal />
         
-        {/* 2. MONITORAMENTO EM TEMPO REAL */}
+        {isMarketOpen ? (
+          <ActiveSignal />
+        ) : (
+          <PostCloseAnalysis />
+        )}
+        
+        {/* 2. MONITORAMENTO ADAPTATIVO */}
         <div className="grid grid-cols-12 gap-0 border-b border-border/50">
           <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-              {activeAssets.slice(0, 3).map((asset, index) => (
-                <div 
-                  key={asset} 
-                  className={`border-b border-border/50 ${index < 2 ? 'md:border-r' : ''}`}
-                >
-                  <MiniChart asset={asset} />
-                </div>
-              ))}
+              {isMarketOpen ? (
+                activeAssets.slice(0, 3).map((asset, index) => (
+                  <div key={asset} className={`border-b border-border/50 ${index < 2 ? 'md:border-r' : ''}`}>
+                    <MiniChart asset={asset} />
+                  </div>
+                ))
+              ) : (
+                <>
+                  <div className="col-span-1 md:col-span-2 border-b border-r border-border/50">
+                    <MarketHeatmap />
+                  </div>
+                  <div className="col-span-1 border-b border-border/50">
+                    <Watchlist />
+                  </div>
+                </>
+              )}
             </div>
             
-            {/* NOVA SEÇÃO: BRAIN & CALENDAR */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-t border-border/50">
               <InstitutionalBrain />
               <MarketCalendar />
@@ -59,11 +74,11 @@ const DashboardContent = () => {
           </div>
         </div>
 
-        {/* 3. PERFORMANCE SEMANAL E TIMELINE */}
+        {/* 3. PERFORMANCE & TIMELINE */}
         <WeeklyPerformance />
         <SessionTimelineBar />
 
-        {/* 4. HISTÓRICO DE EXECUÇÃO */}
+        {/* 4. HISTÓRICO & ANALYTICS */}
         <div className="p-8 border-b border-white/5">
           <div className="flex items-center gap-3 mb-6">
             <LayoutDashboard className="w-4 h-4 text-primary" />
@@ -72,7 +87,6 @@ const DashboardContent = () => {
           <SignalHistory />
         </div>
 
-        {/* 5. INTELIGÊNCIA E ANALYTICS (BASE) */}
         <div className="grid grid-cols-12 gap-0 bg-[#030303]">
           <div className="col-span-12 lg:col-span-4 p-8 border-r border-white/5">
             <div className="flex items-center gap-3 mb-6">
