@@ -2,22 +2,26 @@ import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Card } from "@/components/ui/card";
 import { Calendar as CalendarIcon, TrendingUp, CheckCircle2, XCircle } from 'lucide-react';
+import { getStartOfWeek } from '../utils/csv';
 
 export const WeeklyPerformance = () => {
   const { signalsData } = useTrading();
   const history = signalsData.signals;
+  
+  // Filtra o histórico para pegar apenas sinais desta semana (Segunda em diante)
+  const startOfWeek = getStartOfWeek();
+  const weeklyHistory = history.filter(s => new Date(s.time) >= startOfWeek);
 
-  // Cálculo dinâmico baseado no histórico real
-  const totalWins = history.filter(s => s.status === 'WIN').length;
-  const totalLosses = history.filter(s => s.status === 'LOSS').length;
+  // Cálculo dinâmico baseado apenas na semana atual
+  const totalWins = weeklyHistory.filter(s => s.status === 'WIN').length;
+  const totalLosses = weeklyHistory.filter(s => s.status === 'LOSS').length;
   const totalSignals = totalWins + totalLosses;
   const winRate = totalSignals > 0 ? Math.round((totalWins / totalSignals) * 100) : 0;
-  const totalPips = history.reduce((acc, curr) => acc + curr.pips, 0);
 
-  // Mapeamento simplificado para os dias da semana (Mock para visualização)
+  // Mapeamento para os dias da semana
   const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
   const weeklyStats = days.map(day => {
-    const daySignals = history.filter(s => {
+    const daySignals = weeklyHistory.filter(s => {
       const date = new Date(s.time);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
       return dayName === day;
@@ -41,7 +45,10 @@ export const WeeklyPerformance = () => {
       <div className="grid grid-cols-12">
         {/* Win Rate Stat */}
         <div className="col-span-12 lg:col-span-3 p-8 border-r border-white/5 bg-[#050505] flex flex-col justify-center">
-          <span className="text-[10px] text-primary font-black uppercase tracking-[0.3em] mb-2">Weekly Win Rate</span>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] text-primary font-black uppercase tracking-[0.3em]">Weekly Win Rate</span>
+            <div className="px-1.5 py-0.5 bg-primary/10 border border-primary/20 text-[7px] text-primary font-bold rounded-none">CURRENT WEEK</div>
+          </div>
           <div className="flex items-baseline gap-2">
             <h2 className="text-6xl font-black tracking-tighter text-white glow-text-gold">
               {totalSignals > 0 ? winRate : '--'}%
@@ -50,11 +57,11 @@ export const WeeklyPerformance = () => {
           </div>
           <div className="mt-4 flex gap-4">
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-bull/20" />
+              <div className="w-1.5 h-1.5 rounded-full bg-bull" />
               <span className="text-[10px] font-mono text-muted-foreground">{totalWins} Wins</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-bear/20" />
+              <div className="w-1.5 h-1.5 rounded-full bg-bear" />
               <span className="text-[10px] font-mono text-muted-foreground">{totalLosses} Losses</span>
             </div>
           </div>
