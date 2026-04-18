@@ -3,10 +3,9 @@ import { useTrading } from '../contexts/TradingContext';
 import { Link, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import { RiskCalculator } from './RiskCalculator';
-import { LayoutDashboard, BarChart3, Activity, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, BarChart3 } from 'lucide-react';
 
 export const DashboardHeader = () => {
-  const { isMarketOpen } = useTrading();
   const location = useLocation();
   const isTerminal1 = location.pathname === '/';
 
@@ -34,18 +33,6 @@ export const DashboardHeader = () => {
       </div>
 
       <div className="flex items-center gap-6">
-        <div className="flex items-center gap-4 border-r border-white/10 pr-6">
-          <div className="flex items-center gap-2">
-            <Activity className={`w-3 h-3 ${isMarketOpen ? 'text-bull animate-pulse' : 'text-bear'}`} />
-            <span className={`text-[9px] font-mono uppercase ${isMarketOpen ? 'text-bull' : 'text-bear'}`}>
-              {isMarketOpen ? 'Market Live' : 'Offline'}
-            </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-2">
-            <ShieldCheck className="w-3 h-3 text-primary/50" />
-            <span className="text-[9px] font-mono text-muted-foreground uppercase">Secure Node</span>
-          </div>
-        </div>
         {isTerminal1 && <RiskCalculator />}
       </div>
     </header>
