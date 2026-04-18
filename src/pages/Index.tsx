@@ -3,122 +3,58 @@ import { useTrading, TradingProvider } from '../contexts/TradingContext';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { StatusCards } from '../components/StatusCards';
 import { ActiveSignal } from '../components/ActiveSignal';
-import { WeeklyPerformance } from '../components/WeeklyPerformance';
 import { MiniChart } from '../components/MiniChart';
-import { MarketNews } from '../components/MarketNews';
-import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
-import { SignalHistory } from '../components/SignalHistory';
-import { MarketBiasSummary } from '../components/MarketBiasSummary';
-import { AnalyticsCharts } from '../components/AnalyticsCharts';
-import { InstitutionalBrain } from '../components/InstitutionalBrain';
-import { MarketCalendar } from '../components/MarketCalendar';
-import { MarketHeatmap } from '../components/MarketHeatmap';
-import { Watchlist } from '../components/Watchlist';
-import { PostCloseAnalysis } from '../components/PostCloseAnalysis';
-import { MadeWithDyad } from "@/components/made-with-dyad";
-import { LayoutDashboard, BarChart3, Shield, Search } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
-const DashboardContent = () => {
+const LiveTerminal = () => {
   const { activeAssets, isMarketOpen } = useTrading();
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+    <div className="min-h-screen bg-background text-foreground">
       <DashboardHeader />
       
-      <main className="w-full">
-        {/* 1. STATUS & EXECUÇÃO */}
-        <StatusCards />
-        
-        {isMarketOpen ? (
-          <ActiveSignal />
-        ) : (
-          <PostCloseAnalysis />
+      <main className="w-full relative">
+        {/* Bloqueio de Final de Semana */}
+        {!isMarketOpen && (
+          <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
+            <div className="w-16 h-16 border border-white/10 flex items-center justify-center mb-6 bg-white/5">
+              <Lock className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-black tracking-[0.3em] text-white uppercase mb-2">Terminal Locked</h2>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest max-w-md">
+              The institutional execution engine is offline. Live data and signal generation will resume at London Open.
+            </p>
+          </div>
         )}
+
+        <StatusCards />
+        <ActiveSignal />
         
-        {/* 2. MONITORAMENTO ADAPTATIVO */}
-        <div className="grid grid-cols-12 gap-0 border-b border-border/50">
-          <div className="col-span-12 xl:col-span-9 border-r border-border/50 bg-black">
+        <div className="grid grid-cols-12 gap-0 border-b border-white/5">
+          <div className="col-span-12 xl:col-span-9 border-r border-white/5 bg-black">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-              {isMarketOpen ? (
-                activeAssets.slice(0, 3).map((asset, index) => (
-                  <div key={asset} className={`border-b border-border/50 ${index < 2 ? 'md:border-r' : ''}`}>
-                    <MiniChart asset={asset} />
-                  </div>
-                ))
-              ) : (
-                <>
-                  <div className="col-span-1 md:col-span-2 border-b border-r border-border/50">
-                    <MarketHeatmap />
-                  </div>
-                  <div className="col-span-1 border-b border-border/50">
-                    <Watchlist />
-                  </div>
-                </>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-t border-border/50">
-              <InstitutionalBrain />
-              <MarketCalendar />
+              {activeAssets.slice(0, 3).map((asset, index) => (
+                <div key={asset} className={`border-b border-white/5 ${index < 2 ? 'md:border-r' : ''}`}>
+                  <MiniChart asset={asset} />
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="col-span-12 xl:col-span-3 flex flex-col bg-secondary/5 h-full">
-            <div className="p-4 border-b border-border/50">
-              <MarketNews />
-            </div>
-            <div className="p-4 flex-1">
-              <ZoneActivityFeed />
-            </div>
+          <div className="col-span-12 xl:col-span-3 bg-black h-full">
+            <ZoneActivityFeed />
           </div>
         </div>
-
-        {/* 3. PERFORMANCE & TIMELINE */}
-        <WeeklyPerformance />
-        <SessionTimelineBar />
-
-        {/* 4. HISTÓRICO & ANALYTICS */}
-        <div className="p-8 border-b border-white/5">
-          <div className="flex items-center gap-3 mb-6">
-            <LayoutDashboard className="w-4 h-4 text-primary" />
-            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Execution Log</h3>
-          </div>
-          <SignalHistory />
-        </div>
-
-        <div className="grid grid-cols-12 gap-0 bg-[#030303]">
-          <div className="col-span-12 lg:col-span-4 p-8 border-r border-white/5">
-            <div className="flex items-center gap-3 mb-6">
-              <Shield className="w-4 h-4 text-primary" />
-              <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Market Bias Overview</h3>
-            </div>
-            <MarketBiasSummary />
-          </div>
-          
-          <div className="col-span-12 lg:col-span-8 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Performance Analytics</h3>
-            </div>
-            <AnalyticsCharts />
-          </div>
-        </div>
-
-        <footer className="py-8 opacity-30">
-          <MadeWithDyad />
-        </footer>
       </main>
     </div>
   );
 };
 
-const Index = () => {
-  return (
-    <TradingProvider>
-      <DashboardContent />
-    </TradingProvider>
-  );
-};
+const Index = () => (
+  <TradingProvider>
+    <LiveTerminal />
+  </TradingProvider>
+);
 
 export default Index;
