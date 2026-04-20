@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { TradingProvider } from '../contexts/TradingContext';
 import { DashboardHeader } from '../components/DashboardHeader';
@@ -6,32 +8,40 @@ import { ActiveSignal } from '../components/ActiveSignal';
 import { MainIndexChart } from '../components/MainIndexChart';
 import { MarketSentimentBubble } from '../components/MarketSentimentBubble';
 import { MarketNews } from '../components/MarketNews';
+import { WorldClocks } from '../components/WorldClocks';
 
 const LiveTerminal = () => {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <DashboardHeader />
       
-      <main className="w-full relative">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Section: Bias & P/D Matrix */}
         <StatusCards />
-        <ActiveSignal />
         
-        <div className="grid grid-cols-12 gap-0 border-b border-white/5">
-          {/* Coluna do Gráfico Principal (Index) */}
-          <div className="col-span-12 xl:col-span-6 border-r border-white/5 bg-black">
-            <MainIndexChart />
+        {/* Main Content Grid */}
+        <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+          {/* Left Column: Chart & Signal (8 cols) */}
+          <div className="col-span-12 lg:col-span-8 border-r border-white/5 flex flex-col bg-black">
+            <div className="flex-1 relative">
+              <MainIndexChart />
+            </div>
+            <ActiveSignal />
           </div>
 
-          {/* Coluna de Sentimento (Bolha) */}
-          <div className="col-span-12 md:col-span-6 xl:col-span-3 border-r border-white/5 bg-black">
-            <MarketSentimentBubble />
-          </div>
-
-          {/* Coluna de Notícias */}
-          <div className="col-span-12 md:col-span-6 xl:col-span-3 bg-black">
-            <MarketNews />
+          {/* Right Column: Sentiment & News (4 cols) */}
+          <div className="col-span-12 lg:col-span-4 flex flex-col bg-black">
+            <div className="h-1/2 border-b border-white/5">
+              <MarketSentimentBubble />
+            </div>
+            <div className="h-1/2 overflow-auto">
+              <MarketNews />
+            </div>
           </div>
         </div>
+
+        {/* Footer: World Clocks */}
+        <WorldClocks />
       </main>
     </div>
   );

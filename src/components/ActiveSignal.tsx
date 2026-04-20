@@ -1,160 +1,71 @@
+"use client";
+
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, ShieldCheck, ArrowDown, ArrowUp, Zap, AlertTriangle, DollarSign } from 'lucide-react';
+import { CheckCircle2, XCircle, ArrowDown, ArrowUp, Zap, AlertTriangle, DollarSign } from 'lucide-react';
 
 export const ActiveSignal = () => {
-  const { activeSignal, premiumPct } = useTrading();
-  const signal = activeSignal;
+  const { activeSignal } = useTrading();
 
-  if (!signal) return (
-    <div className="p-16 text-center border-b border-white/5 bg-black relative overflow-hidden">
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
-           style={{ backgroundImage: 'radial-gradient(circle, #EAB308 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-      
-      <div className="flex flex-col items-center justify-center gap-4 relative z-10">
-        <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
-        <p className="text-primary font-black text-[10px] uppercase tracking-[0.4em]">
-          SCANNING INSTITUTIONAL FLOW...
-        </p>
+  if (!activeSignal) return (
+    <div className="px-6 py-3 border-t border-white/5 bg-black/40 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#EAB308]" />
+        <span className="text-[9px] font-black text-primary/60 uppercase tracking-[0.3em]">
+          Neural Engine: Scanning Institutional Liquidity...
+        </span>
+      </div>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map(i => <div key={i} className="w-1 h-1 bg-white/5 rounded-full" />)}
       </div>
     </div>
   );
 
-  const isShort = signal.direction === 'SELL';
+  const isShort = activeSignal.direction === 'SELL';
 
   return (
-    <Card className={`bg-black border-x-0 border-t-0 border-b-4 rounded-none overflow-hidden ${isShort ? 'border-b-bear' : 'border-b-bull'}`}>
-      <div className="bg-primary/5 px-6 py-3 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-[10px] font-black tracking-[0.3em] text-primary uppercase">High Probability Execution Window</span>
-          </div>
-        </div>
-        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Detected: {new Date().toLocaleTimeString()}</span>
-      </div>
-
-      <div className="grid grid-cols-12">
-        <div className="col-span-12 lg:col-span-3 p-8 border-r border-white/5 bg-[#050505]">
-          <div className="flex items-center gap-3 mb-6">
-            {isShort ? (
-              <ArrowDown className="w-10 h-10 text-bear animate-bounce" />
-            ) : (
-              <ArrowUp className="w-10 h-10 text-bull animate-bounce" />
-            )}
-            <span className={`text-4xl font-black tracking-tighter ${isShort ? 'text-bear' : 'text-bull'}`}>
-              {isShort ? 'SELL' : 'BUY'} {signal.asset}
+    <div className={`bg-black border-t-2 ${isShort ? 'border-t-bear' : 'border-t-bull'} overflow-hidden`}>
+      <div className="grid grid-cols-12 divide-x divide-white/5">
+        <div className="col-span-3 p-4 bg-[#050505]">
+          <div className="flex items-center gap-2 mb-1">
+            {isShort ? <ArrowDown className="w-4 h-4 text-bear" /> : <ArrowUp className="w-4 h-4 text-bull" />}
+            <span className={`text-lg font-black tracking-tighter ${isShort ? 'text-bear' : 'text-bull'}`}>
+              {activeSignal.direction} {activeSignal.asset}
             </span>
           </div>
-          
-          <div className="space-y-2 mb-8">
-            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Algorithm Classification</p>
-            <Badge className="bg-primary text-black font-black rounded-none px-3 py-1 text-[10px] tracking-widest">
-              {signal.type_code === 'A' ? 'INSTITUTIONAL ELITE' : 'PRIME SETUP'}
-            </Badge>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-              <span className="text-muted-foreground">Confluences</span>
-              <span className="text-primary">{signal.gate.pillars_count}/3</span>
-            </div>
-            <div className="flex gap-1.5">
-              <PillarBadge label="STOP HUNT" active={signal.gate.stop_hunt} />
-              <PillarBadge label="CHoCH" active={signal.gate.choch} />
-              <PillarBadge label="FLOW" active={signal.gate.of_aligned} />
-            </div>
-          </div>
+          <Badge className="bg-primary text-black font-black rounded-none px-1.5 py-0 text-[8px] tracking-widest h-4">
+            ELITE SETUP
+          </Badge>
         </div>
 
-        <div className="col-span-12 lg:col-span-6 grid grid-cols-2 md:grid-cols-4 gap-0 border-r border-white/5">
-          <PriceBlock label="EXECUTE AT" value={signal.entry} type="entry" />
-          <PriceBlock label="STOP LOSS" value={signal.sl} type="sl" sub={`-${signal.sl_pips.toFixed(1)} pips`} />
-          <PriceBlock label="TARGET 1" value={signal.tp1} type="tp" sub={`+${signal.tp1_pips.toFixed(1)} pips`} />
-          
-          <div className="p-8 border-l-4 bg-primary/[0.05] border-l-primary flex flex-col justify-center border-r border-white/5">
-            <span className="text-[9px] text-primary uppercase font-black tracking-widest mb-3 flex items-center gap-1">
-              <DollarSign className="w-3 h-3" /> Fixed $10 Risk
-            </span>
-            <span className="text-2xl font-mono font-black tracking-tighter text-white">
-              {signal.lot_size} <span className="text-[10px] text-muted-foreground">LOTS</span>
-            </span>
-            <span className="text-[10px] text-muted-foreground font-mono mt-2 opacity-60">Auto-Calculated</span>
-          </div>
-          
-          <div className="col-span-full grid grid-cols-3 border-t border-white/5">
-            <div className="p-6 border-r border-white/5 flex flex-col justify-center bg-black">
-              <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-2">Risk:Reward</span>
-              <span className="text-2xl font-mono font-black text-primary">1:{signal.rr}</span>
-            </div>
-            <div className="p-6 border-r border-white/5 flex flex-col justify-center bg-black">
-              <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-2">Accuracy Score</span>
-              <span className="text-2xl font-mono font-black text-bull">{signal.confidence}%</span>
-            </div>
-            <div className="p-6 flex flex-col justify-center relative bg-primary/[0.02]">
-              <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-2">Market Pattern</span>
-              <span className="text-sm font-mono font-black text-primary uppercase tracking-widest">{signal.manipulation.wyckoff_pattern}</span>
-              <Zap className="absolute right-6 top-1/2 -translate-y-1/2 w-8 h-8 text-primary/10" />
-            </div>
-          </div>
+        <div className="col-span-6 grid grid-cols-3 divide-x divide-white/5">
+          <PriceMiniBlock label="ENTRY" value={activeSignal.entry} color="text-primary" />
+          <PriceMiniBlock label="STOP" value={activeSignal.sl} color="text-bear" sub={`-${activeSignal.sl_pips.toFixed(1)}`} />
+          <PriceMiniBlock label="TARGET" value={activeSignal.tp1} color="text-bull" sub={`+${activeSignal.tp1_pips.toFixed(1)}`} />
         </div>
 
-        <div className="col-span-12 lg:col-span-3 p-8 bg-[#030303]">
-          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4" /> Validation
-          </h3>
-          <div className="space-y-4">
-            <CheckItem label="D1 Bias Aligned" checked={signal.checklist.d1_aligned} />
-            <CheckItem label="HTF Structure" checked={signal.checklist.htf_aligned} />
-            <CheckItem label="Liquidity Swept" checked={signal.checklist.zone_touched} />
-            <CheckItem label="Order Flow" checked={signal.checklist.of_confirmed} />
-            <CheckItem label="P/D Matrix OK" checked={signal.checklist.premium_ok} />
+        <div className="col-span-3 p-4 flex flex-col justify-center bg-primary/[0.02]">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest">Lot Size</span>
+            <span className="text-xs font-mono font-black text-white">{activeSignal.lot_size}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest">Confidence</span>
+            <span className="text-xs font-mono font-black text-bull">{activeSignal.confidence}%</span>
           </div>
         </div>
       </div>
-    </Card>
-  );
-};
-
-const PillarBadge = ({ label, active }: { label: string, active: boolean }) => (
-  <div className={`px-2 py-1 rounded-none text-[8px] font-black border tracking-tighter ${active ? 'bg-bull/20 border-bull/50 text-bull' : 'bg-white/5 border-white/10 text-muted-foreground'}`}>
-    {label}
-  </div>
-);
-
-const PriceBlock = ({ label, value, type, sub }: { label: string, value: number, type: 'entry' | 'sl' | 'tp', sub?: string }) => {
-  const styles = {
-    entry: "bg-primary/[0.03] border-l-primary",
-    sl: "bg-bear/[0.03] border-l-bear",
-    tp: "bg-bull/[0.03] border-l-bull"
-  };
-  
-  const textColors = {
-    entry: "text-primary",
-    sl: "text-bear",
-    tp: "text-bull"
-  };
-
-  return (
-    <div className={`p-8 border-l-4 ${styles[type]} flex flex-col justify-center border-r border-white/5`}>
-      <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-3">{label}</span>
-      <span className={`text-2xl font-mono font-black tracking-tighter ${textColors[type]}`}>
-        {value.toFixed(5)}
-      </span>
-      {sub && <span className="text-[10px] text-muted-foreground font-mono mt-2 opacity-60">{sub}</span>}
     </div>
   );
 };
 
-const CheckItem = ({ label, checked }: { label: string, checked: boolean }) => (
-  <div className="flex items-center justify-between">
-    <span className="text-[10px] text-white/70 font-bold uppercase tracking-widest">{label}</span>
-    {checked ? (
-      <CheckCircle2 className="w-4 h-4 text-bull" />
-    ) : (
-      <XCircle className="w-4 h-4 text-bear" />
-    )}
+const PriceMiniBlock = ({ label, value, color, sub }: { label: string, value: number, color: string, sub?: string }) => (
+  <div className="p-3 flex flex-col justify-center">
+    <span className="text-[7px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">{label}</span>
+    <div className="flex items-baseline gap-1">
+      <span className={`text-sm font-mono font-black ${color}`}>{value.toFixed(5)}</span>
+      {sub && <span className="text-[8px] text-muted-foreground font-mono opacity-50">{sub}</span>}
+    </div>
   </div>
 );
