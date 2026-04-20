@@ -5,7 +5,6 @@ import { useTrading } from '../contexts/TradingContext';
 import { Link, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import { RiskCalculator } from './RiskCalculator';
-import { TickerTape } from './TickerTape';
 import { LayoutDashboard, BarChart3, ShieldCheck, Globe } from 'lucide-react';
 
 export const DashboardHeader = () => {
@@ -50,7 +49,6 @@ export const DashboardHeader = () => {
           {isTerminal1 && <RiskCalculator />}
         </div>
       </header>
-      <TickerTape />
     </div>
   );
 };
