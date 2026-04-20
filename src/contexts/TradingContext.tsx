@@ -37,6 +37,7 @@ const getMarketSession = (): MarketSession => {
   const hour = now.getUTCHours();
   if (hour >= 8 && hour <= 16) return 'NEW_YORK';
   if (hour >= 0 && hour <= 8) return 'TOKYO';
+  if (hour >= 17 && hour <= 23) return 'CLOSE'; // Gap entre NY e Tokyo
   return 'LONDON';
 };
 
@@ -55,7 +56,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [asset, setAsset] = useState<Asset>(activeAssets[0]);
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [marketSentiment, setMarketSentiment] = useState({ buyers: 52, sellers: 48 });
+  const [marketSentiment, setMarketSentiment] = useState({ buyers: 50, sellers: 50 });
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
     name: 'DXY INDEX',
     candles: generateMockCandles(100, 104.5)
@@ -63,8 +64,8 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   const [d1Bias, setD1Bias] = useState<BiasDirection>('NEUTRAL');
   const [premiumPct, setPremiumPct] = useState(50);
+  const isMarketOpen = currentSession !== 'CLOSE';
 
-  // 1. Inicialização de Dados
   useEffect(() => {
     const initialData: Record<string, AssetData> = {};
     for (const a of activeAssets) {
@@ -76,31 +77,38 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(false);
   }, [activeAssets]);
 
-  // 2. Feed de 1 Segundo para o INDEX (DXY)
   useEffect(() => {
     const interval = setInterval(() => {
       setSessionIndex(prev => {
         const lastCandle = prev.candles[prev.candles.length - 1];
         const nextCandle = generateNextCandle(lastCandle, 1);
+        
+        // Lógica de Sentimento baseada no DXY
+        const change = nextCandle.close - lastCandle.close;
+        setMarketSentiment(s => {
+          const shift = change * 100; // Sensibilidade ao movimento do Index
+          const newBuyers = Math.max(10, Math.min(90, s.buyers - shift));
+          return { buyers: newBuyers, sellers: 100 - newBuyers };
+        });
+
         return {
           ...prev,
           candles: [...prev.candles.slice(-199), nextCandle]
         };
       });
-
-      // Simular variação de sentimento
-      setMarketSentiment(prev => ({
-        buyers: Math.max(30, Math.min(70, prev.buyers + (Math.random() - 0.5) * 2)),
-        sellers: 100 - (prev.buyers + (Math.random() - 0.5) * 2)
-      }));
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // 3. Atualização de Ativos (Incremental a cada 10s para análise pesada)
   useEffect(() => {
     const interval = setInterval(() => {
+      if (!isMarketOpen) {
+        setD1Bias('NEUTRAL');
+        setPremiumPct(50);
+        return;
+      }
+
       setAllAssetsData(prev => {
         const newData = { ...prev };
         let totalPremium = 0;
@@ -131,7 +139,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [activeAssets]);
+  }, [activeAssets, isMarketOpen]);
 
   const currentData = allAssetsData[asset] || { 
     candles: [], 
@@ -143,14 +151,14 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       asset, setAsset,
       timeframe: 'M1', setTimeframe: () => {},
       candles: currentData.candles,
-      d1Bias,
-      premiumPct,
-      activeSignal: currentData.analysis.activeSignal,
+      d1Bias: isMarketOpen ? d1Bias : 'NEUTRAL',
+      premiumPct: isMarketOpen ? premiumPct : 50,
+      activeSignal: isMarketOpen ? currentData.analysis.activeSignal : null,
       signalsData: mockSignalsData,
       isLoading,
       currentSession,
       activeAssets,
-      isMarketOpen: currentSession !== 'CLOSE',
+      isMarketOpen,
       allAssetsData,
       marketSentiment,
       sessionIndex

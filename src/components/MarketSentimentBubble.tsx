@@ -3,7 +3,7 @@ import { useTrading } from '../contexts/TradingContext';
 import { TrendingUp, TrendingDown, Zap } from 'lucide-react';
 
 export const MarketSentimentBubble = () => {
-  const { marketSentiment } = useTrading();
+  const { marketSentiment, sessionIndex } = useTrading();
   const { buyers, sellers } = marketSentiment;
 
   return (
@@ -12,14 +12,14 @@ export const MarketSentimentBubble = () => {
       
       <div className="flex items-center gap-2 mb-6">
         <Zap className="w-3 h-3 text-primary animate-pulse" />
-        <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Order Flow Pressure</span>
+        <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">DXY Order Flow Pressure</span>
       </div>
 
       <div className="relative w-48 h-48 flex items-center justify-center">
         {/* Círculo de Fundo */}
         <div className="absolute inset-0 rounded-full border-4 border-white/5" />
         
-        {/* Arco de Compradores */}
+        {/* Arco de Pressão (Baseado no Index) */}
         <svg className="absolute inset-0 w-full h-full -rotate-90">
           <circle
             cx="96"
@@ -30,13 +30,13 @@ export const MarketSentimentBubble = () => {
             strokeWidth="8"
             strokeDasharray="552.92"
             strokeDashoffset={552.92 * (1 - buyers / 100)}
-            className="text-bull transition-all duration-1000 ease-in-out"
+            className="text-primary transition-all duration-1000 ease-in-out"
           />
         </svg>
 
         <div className="flex flex-col items-center z-10">
           <span className="text-4xl font-black tracking-tighter text-white">{buyers.toFixed(0)}%</span>
-          <span className="text-[9px] font-black text-bull uppercase tracking-widest">Buyers</span>
+          <span className="text-[9px] font-black text-primary uppercase tracking-widest">Index Strength</span>
         </div>
       </div>
 
@@ -44,12 +44,12 @@ export const MarketSentimentBubble = () => {
         <div className="flex flex-col items-center p-3 bg-bull/5 border border-bull/20">
           <TrendingUp className="w-4 h-4 text-bull mb-1" />
           <span className="text-xs font-mono font-bold text-bull">{buyers.toFixed(1)}%</span>
-          <span className="text-[7px] font-black text-muted-foreground uppercase">Longs</span>
+          <span className="text-[7px] font-black text-muted-foreground uppercase">Bullish Flow</span>
         </div>
         <div className="flex flex-col items-center p-3 bg-bear/5 border border-bear/20">
           <TrendingDown className="w-4 h-4 text-bear mb-1" />
           <span className="text-xs font-mono font-bold text-bear">{sellers.toFixed(1)}%</span>
-          <span className="text-[7px] font-black text-muted-foreground uppercase">Shorts</span>
+          <span className="text-[7px] font-black text-muted-foreground uppercase">Bearish Flow</span>
         </div>
       </div>
     </div>
