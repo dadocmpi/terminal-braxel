@@ -46,6 +46,7 @@ const isKillZone = () => {
     hour12: false
   }).format(new Date());
   const hour = parseInt(nyTime);
+  // London Open (3-5 AM NY) ou NY Open (8-10 AM NY)
   return (hour >= 3 && hour <= 5) || (hour >= 8 && hour <= 10);
 };
 
@@ -55,32 +56,44 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
   const lastCandle = candles[candles.length - 1];
   const prevCandles = candles.slice(-30, -1);
   
+  // 1. Detecção de Liquidez (Sweep)
   const highestPrev = Math.max(...prevCandles.map(c => c.high));
   const lowestPrev = Math.min(...prevCandles.map(c => c.low));
   const sweptHigh = lastCandle.high > highestPrev;
   const sweptLow = lastCandle.low < lowestPrev;
 
-  const isMSS_Bull = lastCandle.close > highestPrev;
-  const isMSS_Bear = lastCandle.close < lowestPrev;
+  // 2. Detecção de MSS (Market Structure Shift) - A CONFIRMAÇÃO REAL
+  // Procuramos por um fechamento de vela que confirme a quebra de estrutura
+  const isMSS_Bull = lastCandle.close > highestPrev && candles[candles.length - 2].close <= highestPrev;
+  const isMSS_Bear = lastCandle.close < lowestPrev && candles[candles.length - 2].close >= lowestPrev;
 
+  // 3. Bias de Tempo Maior (HTF)
   const longMA = candles.reduce((a, b) => a + b.close, 0) / candles.length;
   const htfBias: BiasDirection = lastCandle.close > longMA ? 'BUY' : 'SELL';
 
   const inKillZone = isKillZone();
 
+  // 4. Matriz Premium/Discount
   const high = Math.max(...candles.map(c => c.high));
   const low = Math.min(...candles.map(c => c.low));
   const premiumPct = ((lastCandle.close - low) / (high - low)) * 100;
 
   let activeSignal: ActiveSignal | null = null;
-  const direction = (isMSS_Bull || sweptLow) ? 'BUY' : 'SELL';
-  const isTrendAligned = direction === htfBias;
-  
-  if (inKillZone && isTrendAligned && (sweptHigh || sweptLow)) {
+
+  // LÓGICA DE CONFIRMAÇÃO ESTRITA:
+  // Só gera sinal se: Estiver na Killzone + Bias Alinhado + Captura de Liquidez OCORREU + MSS CONFIRMADO
+  const canBuy = inKillZone && htfBias === 'BUY' && sweptLow && isMSS_Bull && premiumPct < 40;
+  const canSell = inKillZone && htfBias === 'SELL' && sweptHigh && isMSS_Bear && premiumPct > 60;
+
+  if (canBuy || canSell) {
+    const direction = canBuy ? 'BUY' : 'SELL';
     const entry = lastCandle.close;
-    const sl_dist = Math.abs(high - low) * 0.15;
+    
+    // Cálculo de SL/TP baseado na volatilidade recente (ATR simplificado)
+    const range = highestPrev - lowestPrev;
+    const sl_dist = range * 0.2;
     const sl = direction === 'BUY' ? entry - sl_dist : entry + sl_dist;
-    const tp1 = entry + (Math.abs(entry - sl) * 2.5);
+    const tp1 = direction === 'BUY' ? entry + (sl_dist * 2.5) : entry - (sl_dist * 2.5);
     
     const multiplier = asset.includes('JPY') ? 100 : 10000;
     const sl_pips = Math.abs(entry - sl) * multiplier;
@@ -91,17 +104,35 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
       entry,
       sl,
       tp1,
-      tp2: entry + (Math.abs(entry - sl) * 4.0),
+      tp2: direction === 'BUY' ? entry + (sl_dist * 4) : entry - (sl_dist * 4),
       sl_pips,
-      tp1_pips: Math.abs(entry - tp1) * multiplier,
-      tp2_pips: Math.abs(entry - sl) * 4.0 * multiplier,
+      tp1_pips: sl_pips * 2.5,
+      tp2_pips: sl_pips * 4,
       rr: 2.5,
-      confidence: 92,
+      confidence: 94, // Confiança maior devido ao MSS
       type_code: 'A',
       lot_size: parseFloat((10 / (sl_pips * 10)).toFixed(2)),
-      gate: { stop_hunt: sweptHigh || sweptLow, choch: isMSS_Bull || isMSS_Bear, of_aligned: true, pillars_count: 3 },
-      manipulation: { stop_hunt: true, stop_hunt_pips: sl_pips * 0.2, wyckoff_pattern: 'INSTITUTIONAL SWEEP', fixing_window: inKillZone ? 'KILL ZONE' : 'STANDARD', score_bonus: 15 },
-      checklist: { d1_aligned: isTrendAligned, htf_aligned: true, zone_touched: true, of_confirmed: true, m1_candle: true, premium_ok: direction === 'BUY' ? premiumPct < 50 : premiumPct > 50 }
+      gate: { 
+        stop_hunt: true, 
+        choch: true, // MSS Confirmado
+        of_aligned: true, 
+        pillars_count: 4 
+      },
+      manipulation: { 
+        stop_hunt: true, 
+        stop_hunt_pips: sl_pips * 0.3, 
+        wyckoff_pattern: 'MSS CONFIRMED', 
+        fixing_window: 'KILL ZONE', 
+        score_bonus: 20 
+      },
+      checklist: { 
+        d1_aligned: true, 
+        htf_aligned: true, 
+        zone_touched: true, 
+        of_confirmed: true, 
+        m1_candle: true, 
+        premium_ok: true 
+      }
     };
   }
 
