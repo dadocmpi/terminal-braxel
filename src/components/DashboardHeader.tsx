@@ -1,9 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useTrading } from '../contexts/TradingContext';
 import { Link, useLocation } from 'react-router-dom';
-import Logo from './Logo';
 import { RiskCalculator } from './RiskCalculator';
 
 export const DashboardHeader = () => {
@@ -15,7 +13,11 @@ export const DashboardHeader = () => {
     <div className="sticky top-0 z-50 w-full bg-black border-b border-white/10">
       <header className="px-6 h-12 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Logo />
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black tracking-[0.2em] text-white hidden sm:block">
+              BRAXEL<span className="text-primary">MARKETS</span>
+            </span>
+          </div>
           
           <div className="flex items-center gap-1.5">
             <Link 
