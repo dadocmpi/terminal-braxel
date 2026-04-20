@@ -37,8 +37,17 @@ const getMarketSession = (): MarketSession => {
   const hour = now.getUTCHours();
   if (hour >= 8 && hour <= 16) return 'NEW_YORK';
   if (hour >= 0 && hour <= 8) return 'TOKYO';
-  if (hour >= 17 && hour <= 23) return 'CLOSE'; // Gap entre NY e Tokyo
+  if (hour >= 17 && hour <= 23) return 'CLOSE';
   return 'LONDON';
+};
+
+const getIndexConfig = (session: MarketSession) => {
+  switch(session) {
+    case 'NEW_YORK': return { name: 'DXY INDEX', base: 104.5 };
+    case 'LONDON': return { name: 'BXY INDEX', base: 126.2 };
+    case 'TOKYO': return { name: 'JXY INDEX', base: 92.4 };
+    default: return { name: 'DXY INDEX', base: 104.5 };
+  }
 };
 
 const getSessionAssets = (session: MarketSession): Asset[] => {
@@ -57,9 +66,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [marketSentiment, setMarketSentiment] = useState({ buyers: 50, sellers: 50 });
+  
+  const indexConfig = getIndexConfig(currentSession);
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
-    name: 'DXY INDEX',
-    candles: generateMockCandles(100, 104.5)
+    name: indexConfig.name,
+    candles: generateMockCandles(100, indexConfig.base)
   });
   
   const [d1Bias, setD1Bias] = useState<BiasDirection>('NEUTRAL');
@@ -83,10 +94,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const lastCandle = prev.candles[prev.candles.length - 1];
         const nextCandle = generateNextCandle(lastCandle, 1);
         
-        // Lógica de Sentimento baseada no DXY
         const change = nextCandle.close - lastCandle.close;
         setMarketSentiment(s => {
-          const shift = change * 100; // Sensibilidade ao movimento do Index
+          const shift = change * 100;
           const newBuyers = Math.max(10, Math.min(90, s.buyers - shift));
           return { buyers: newBuyers, sellers: 100 - newBuyers };
         });

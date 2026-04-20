@@ -12,7 +12,7 @@ export const MarketSentimentBubble = () => {
       
       <div className="flex items-center gap-2 mb-6">
         <Zap className="w-3 h-3 text-primary animate-pulse" />
-        <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">DXY Order Flow Pressure</span>
+        <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">{sessionIndex.name} Pressure</span>
       </div>
 
       <div className="relative w-48 h-48 flex items-center justify-center">
@@ -36,7 +36,7 @@ export const MarketSentimentBubble = () => {
 
         <div className="flex flex-col items-center z-10">
           <span className="text-4xl font-black tracking-tighter text-white">{buyers.toFixed(0)}%</span>
-          <span className="text-[9px] font-black text-primary uppercase tracking-widest">Index Strength</span>
+          <span className="text-[9px] font-black text-primary uppercase tracking-widest">Strength Index</span>
         </div>
       </div>
 
