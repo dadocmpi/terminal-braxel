@@ -14,7 +14,7 @@ export const MainIndexChart = () => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 400,
+      height: chartContainerRef.current.clientHeight || 500,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#475569',
@@ -58,12 +58,23 @@ export const MainIndexChart = () => {
     chart.timeScale().fitContent();
 
     const handleResize = () => {
-      chart.applyOptions({ width: chartContainerRef.current?.clientWidth || 0 });
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ 
+          width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight
+        });
+      }
     };
+    
     window.addEventListener('resize', handleResize);
+    
+    // Observer para mudanças de tamanho do container (flex-1)
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(chartContainerRef.current);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       chart.remove();
     };
   }, []);
@@ -93,7 +104,7 @@ export const MainIndexChart = () => {
           </span>
         </div>
       </div>
-      <div ref={chartContainerRef} className="flex-1 w-full" />
+      <div ref={chartContainerRef} className="flex-1 w-full h-full" />
     </div>
   );
 };

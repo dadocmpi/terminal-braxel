@@ -21,13 +21,13 @@ const LiveTerminal = () => {
         
         {/* Main Content Grid */}
         <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-          {/* Left Column: Clocks, Chart & Signal (8 cols) */}
+          {/* Left Column: Clocks, Signal & Stretched Chart (8 cols) */}
           <div className="col-span-12 lg:col-span-8 border-r border-white/5 flex flex-col bg-black">
             <WorldClocks />
-            <div className="flex-1 relative">
+            <ActiveSignal />
+            <div className="flex-1 relative w-full">
               <MainIndexChart />
             </div>
-            <ActiveSignal />
           </div>
 
           {/* Right Column: Sentiment & News (4 cols) */}
