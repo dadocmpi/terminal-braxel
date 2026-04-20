@@ -26,7 +26,7 @@ export const DashboardHeader = () => {
                 : 'text-muted-foreground border-white/10 hover:border-white/30 hover:text-white'
               }`}
             >
-              01
+              1
             </Link>
             <Link 
               to="/analytics" 
@@ -36,7 +36,7 @@ export const DashboardHeader = () => {
                 : 'text-muted-foreground border-white/10 hover:border-white/30 hover:text-white'
               }`}
             >
-              02
+              2
             </Link>
           </div>
         </div>
