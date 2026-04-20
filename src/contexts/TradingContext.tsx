@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Asset, Timeframe, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession, ActivityLog } from '../types/trading';
-import { analyzeWSBot, generateMockCandles } from '../data/mockData';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { Asset, Timeframe, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession } from '../types/trading';
+import { analyzeWSBot, generateMockCandles, generateNextCandle } from '../data/mockData';
 import { mockSignalsData } from '../data/signalsData';
-import { supabase } from '../lib/supabase';
 
 interface AssetData {
   candles: Candle[];
@@ -56,43 +55,81 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [asset, setAsset] = useState<Asset>(activeAssets[0]);
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [marketSentiment, setMarketSentiment] = useState({ buyers: 50, sellers: 50 });
+  const [marketSentiment, setMarketSentiment] = useState({ buyers: 52, sellers: 48 });
+  const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
+    name: 'DXY INDEX',
+    candles: generateMockCandles(100, 104.5)
+  });
   
-  // Agregadores Reais
   const [d1Bias, setD1Bias] = useState<BiasDirection>('NEUTRAL');
   const [premiumPct, setPremiumPct] = useState(50);
 
+  // 1. Inicialização de Dados
   useEffect(() => {
-    const fetchData = async () => {
-      const newData: Record<string, AssetData> = {};
-      let totalPremium = 0;
-      let buyCount = 0;
-      let sellCount = 0;
+    const initialData: Record<string, AssetData> = {};
+    for (const a of activeAssets) {
+      const candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
+      const analysis = analyzeWSBot(candles, a, 'M1');
+      initialData[a] = { candles, analysis, lastUpdate: Date.now() };
+    }
+    setAllAssetsData(initialData);
+    setIsLoading(false);
+  }, [activeAssets]);
 
-      for (const a of activeAssets) {
-        // Aqui no futuro substituiremos por: await fetchRealData(a)
-        const candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
-        const analysis = analyzeWSBot(candles, a, 'M1');
-        
-        newData[a] = { candles, analysis, lastUpdate: Date.now() };
-        
-        totalPremium += analysis.premiumPct;
-        if (analysis.d1Bias === 'BUY') buyCount++;
-        if (analysis.d1Bias === 'SELL') sellCount++;
-      }
+  // 2. Feed de 1 Segundo para o INDEX (DXY)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSessionIndex(prev => {
+        const lastCandle = prev.candles[prev.candles.length - 1];
+        const nextCandle = generateNextCandle(lastCandle, 1);
+        return {
+          ...prev,
+          candles: [...prev.candles.slice(-199), nextCandle]
+        };
+      });
 
-      // Cálculo da Média da Sessão (Profissional)
-      setPremiumPct(totalPremium / activeAssets.length);
-      if (buyCount > sellCount) setD1Bias('BUY');
-      else if (sellCount > buyCount) setD1Bias('SELL');
-      else setD1Bias('NEUTRAL');
+      // Simular variação de sentimento
+      setMarketSentiment(prev => ({
+        buyers: Math.max(30, Math.min(70, prev.buyers + (Math.random() - 0.5) * 2)),
+        sellers: 100 - (prev.buyers + (Math.random() - 0.5) * 2)
+      }));
+    }, 1000);
 
-      setAllAssetsData(newData);
-      setIsLoading(false);
-    };
+    return () => clearInterval(interval);
+  }, []);
 
-    fetchData();
-    const interval = setInterval(fetchData, 10000); // Atualização profissional a cada 10s
+  // 3. Atualização de Ativos (Incremental a cada 10s para análise pesada)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAllAssetsData(prev => {
+        const newData = { ...prev };
+        let totalPremium = 0;
+        let buyCount = 0;
+        let sellCount = 0;
+
+        for (const a of activeAssets) {
+          if (!newData[a]) continue;
+          const lastCandle = newData[a].candles[newData[a].candles.length - 1];
+          const nextCandle = generateNextCandle(lastCandle, 10);
+          const updatedCandles = [...newData[a].candles.slice(-99), nextCandle];
+          const analysis = analyzeWSBot(updatedCandles, a, 'M1');
+          
+          newData[a] = { candles: updatedCandles, analysis, lastUpdate: Date.now() };
+          
+          totalPremium += analysis.premiumPct;
+          if (analysis.d1Bias === 'BUY') buyCount++;
+          if (analysis.d1Bias === 'SELL') sellCount++;
+        }
+
+        setPremiumPct(totalPremium / activeAssets.length);
+        if (buyCount > sellCount) setD1Bias('BUY');
+        else if (sellCount > buyCount) setD1Bias('SELL');
+        else setD1Bias('NEUTRAL');
+
+        return newData;
+      });
+    }, 10000);
+
     return () => clearInterval(interval);
   }, [activeAssets]);
 
@@ -116,7 +153,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMarketOpen: currentSession !== 'CLOSE',
       allAssetsData,
       marketSentiment,
-      sessionIndex: { name: 'DXY', candles: generateMockCandles(100, 104.5) }
+      sessionIndex
     }}>
       {children}
     </TradingContext.Provider>

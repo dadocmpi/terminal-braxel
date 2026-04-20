@@ -24,8 +24,18 @@ export const MainIndexChart = () => {
         vertLines: { color: 'rgba(255, 255, 255, 0.02)' },
         horzLines: { color: 'rgba(255, 255, 255, 0.02)' },
       },
-      timeScale: { borderVisible: false },
-      rightPriceScale: { borderVisible: false },
+      timeScale: {
+        borderVisible: false,
+        timeVisible: true,
+        secondsVisible: true,
+      },
+      rightPriceScale: {
+        borderVisible: false,
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.1,
+        },
+      },
       handleScroll: false,
       handleScale: false,
     });
@@ -35,10 +45,17 @@ export const MainIndexChart = () => {
       topColor: 'rgba(234, 179, 8, 0.2)',
       bottomColor: 'rgba(234, 179, 8, 0)',
       lineWidth: 2,
+      priceLineVisible: true,
+      lastValueVisible: true,
     });
 
     seriesRef.current = series;
     chartRef.current = chart;
+
+    // Inicializar com dados existentes
+    const initialData = sessionIndex.candles.map(c => ({ time: c.time, value: c.close }));
+    series.setData(initialData as any);
+    chart.timeScale().fitContent();
 
     const handleResize = () => {
       chart.applyOptions({ width: chartContainerRef.current?.clientWidth || 0 });
@@ -51,11 +68,14 @@ export const MainIndexChart = () => {
     };
   }, []);
 
+  // Atualização incremental (Real-time)
   useEffect(() => {
     if (seriesRef.current && sessionIndex.candles.length > 0) {
-      const data = sessionIndex.candles.map(c => ({ time: c.time, value: c.close }));
-      seriesRef.current.setData(data as any);
-      chartRef.current?.timeScale().fitContent();
+      const lastCandle = sessionIndex.candles[sessionIndex.candles.length - 1];
+      seriesRef.current.update({
+        time: lastCandle.time as any,
+        value: lastCandle.close
+      });
     }
   }, [sessionIndex]);
 
@@ -67,8 +87,10 @@ export const MainIndexChart = () => {
           <span className="tracking-[0.2em]">{sessionIndex.name}</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-primary font-black text-xs animate-pulse">LIVE FEED</span>
-          <span className="text-white font-mono text-xs">{sessionIndex.candles[sessionIndex.candles.length-1]?.close.toFixed(3)}</span>
+          <span className="text-primary font-black text-[9px] animate-pulse">LIVE FEED (1S)</span>
+          <span className="text-white font-mono text-xs tabular-nums">
+            {sessionIndex.candles[sessionIndex.candles.length-1]?.close.toFixed(3)}
+          </span>
         </div>
       </div>
       <div ref={chartContainerRef} className="flex-1 w-full" />
