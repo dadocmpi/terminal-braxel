@@ -46,6 +46,7 @@ const getIndexConfig = (session: MarketSession) => {
     case 'NEW_YORK': return { name: 'DXY INDEX', base: 104.5 };
     case 'LONDON': return { name: 'BXY INDEX', base: 126.2 };
     case 'TOKYO': return { name: 'JXY INDEX', base: 92.4 };
+    case 'CLOSE': return { name: 'DXY INDEX', base: 104.5 }; // Dólar como moeda central fora de sessão
     default: return { name: 'DXY INDEX', base: 104.5 };
   }
 };
