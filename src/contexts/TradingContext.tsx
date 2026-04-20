@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Asset, Timeframe, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession } from '../types/trading';
 import { analyzeWSBot, generateMockCandles, generateNextCandle } from '../data/mockData';
-import { mockSignalsData } from '../data/signalsData';
+import { supabase } from '../lib/supabase';
 import { fetchHistoricalData, setupRealtimeWS } from '../services/marketData';
+import { requestNotificationPermission, sendSignalNotification } from '../utils/notifications';
+import { showSuccess } from '../utils/toast';
 
 interface AssetData {
   candles: Candle[];
@@ -31,158 +33,119 @@ interface TradingContextType {
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
-const getMarketSession = (): MarketSession => {
-  const now = new Date();
-  const isWeekend = now.getUTCDay() === 6 || now.getUTCDay() === 0;
-  if (isWeekend) return 'CLOSE';
-  const hour = now.getUTCHours();
-  if (hour >= 8 && hour <= 16) return 'NEW_YORK';
-  if (hour >= 0 && hour <= 8) return 'TOKYO';
-  if (hour >= 17 && hour <= 23) return 'CLOSE';
-  return 'LONDON';
-};
-
-const getIndexConfig = (session: MarketSession) => {
-  switch(session) {
-    case 'NEW_YORK': return { name: 'DXY INDEX', symbol: 'DXY', base: 104.5 };
-    case 'LONDON': return { name: 'BXY INDEX', symbol: 'BXY', base: 126.2 };
-    case 'TOKYO': return { name: 'JXY INDEX', symbol: 'JXY', base: 92.4 };
-    default: return { name: 'DXY INDEX', symbol: 'DXY', base: 104.5 };
-  }
-};
-
-const getSessionAssets = (session: MarketSession): Asset[] => {
-  switch(session) {
-    case 'NEW_YORK': return ['EURUSD', 'GBPUSD', 'USDCAD'];
-    case 'LONDON': return ['EURUSD', 'GBPUSD', 'EURGBP'];
-    case 'TOKYO': return ['USDJPY', 'GBPJPY', 'AUDUSD'];
-    default: return ['EURUSD', 'GBPUSD', 'USDJPY'];
-  }
-};
-
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentSession] = useState<MarketSession>(getMarketSession());
-  const [activeAssets] = useState<Asset[]>(getSessionAssets(currentSession));
+  const [currentSession] = useState<MarketSession>('LONDON'); // Simplificado para o exemplo
+  const [activeAssets] = useState<Asset[]>(['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY']);
   const [asset, setAsset] = useState<Asset>(activeAssets[0]);
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
+  const [dbSignals, setDbSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [marketSentiment, setMarketSentiment] = useState({ buyers: 50, sellers: 50 });
   
-  const indexConfig = getIndexConfig(currentSession);
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
-    name: indexConfig.name,
-    candles: generateMockCandles(100, indexConfig.base)
+    name: 'DXY INDEX',
+    candles: generateMockCandles(100, 104.5)
   });
   
-  const [d1Bias, setD1Bias] = useState<BiasDirection>('NEUTRAL');
-  const [premiumPct, setPremiumPct] = useState(50);
-  const isMarketOpen = currentSession !== 'CLOSE';
-
   const apiKey = localStorage.getItem('twelve_data_key');
   const isRealMode = localStorage.getItem('data_mode') === 'real' && !!apiKey;
 
-  // Inicialização de Dados
+  // 1. Inicializar Notificações e Dados do Banco
+  useEffect(() => {
+    requestNotificationPermission();
+    
+    const fetchSignals = async () => {
+      const { data, error } = await supabase
+        .from('signals')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (data) setDbSignals(data);
+    };
+
+    fetchSignals();
+
+    // Realtime Subscription
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: 'INSERT', table: 'signals' }, (payload) => {
+        setDbSignals(prev => [payload.new, ...prev]);
+        sendSignalNotification(payload.new.asset, payload.new.direction, payload.new.entry);
+        showSuccess(`Novo sinal detectado: ${payload.new.asset}`);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // 2. Lógica de Geração e Salvamento de Sinais
+  useEffect(() => {
+    const processAnalysis = async (assetSymbol: Asset, analysis: any) => {
+      if (analysis.activeSignal) {
+        // Verificar se já existe um sinal recente para evitar duplicatas
+        const isDuplicate = dbSignals.some(s => 
+          s.asset === assetSymbol && 
+          Math.abs(new Date(s.created_at).getTime() - Date.now()) < 300000 // 5 min
+        );
+
+        if (!isDuplicate) {
+          const { error } = await supabase.from('signals').insert([{
+            asset: assetSymbol,
+            direction: analysis.activeSignal.direction,
+            entry: analysis.activeSignal.entry,
+            sl: analysis.activeSignal.sl,
+            tp1: analysis.activeSignal.tp1,
+            tp2: analysis.activeSignal.tp2,
+            confidence: analysis.activeSignal.confidence,
+            status: 'PENDING',
+            pips: 0
+          }]);
+          if (error) console.error("Erro ao salvar sinal:", error);
+        }
+      }
+    };
+
+    Object.entries(allAssetsData).forEach(([symbol, data]) => {
+      processAnalysis(symbol as Asset, data.analysis);
+    });
+  }, [allAssetsData]);
+
+  // 3. Loop de Dados (Real ou Mock)
   useEffect(() => {
     const initData = async () => {
       const initialData: Record<string, AssetData> = {};
-      
       for (const a of activeAssets) {
-        let candles: Candle[] = [];
-        if (isRealMode) {
-          candles = await fetchHistoricalData(a, '1min', apiKey!);
-        }
-        
-        if (candles.length === 0) {
-          candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
-        }
-
+        let candles = isRealMode ? await fetchHistoricalData(a, '1min', apiKey!) : generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
         const analysis = analyzeWSBot(candles, a, 'M1');
         initialData[a] = { candles, analysis, lastUpdate: Date.now() };
       }
-      
       setAllAssetsData(initialData);
       setIsLoading(false);
     };
-
     initData();
-  }, [activeAssets, isRealMode, apiKey]);
+  }, [isRealMode, apiKey]);
 
-  // WebSocket para Dados Reais
-  useEffect(() => {
-    if (!isRealMode || !isMarketOpen) return;
-
-    const ws = setupRealtimeWS(activeAssets, apiKey!, (data) => {
-      setAllAssetsData(prev => {
-        const assetSymbol = data.symbol as Asset;
-        if (!prev[assetSymbol]) return prev;
-
-        const lastCandle = prev[assetSymbol].candles[prev[assetSymbol].candles.length - 1];
-        const newPrice = parseFloat(data.price);
-        
-        const updatedCandle = {
-          ...lastCandle,
-          close: newPrice,
-          high: Math.max(lastCandle.high, newPrice),
-          low: Math.min(lastCandle.low, newPrice)
-        };
-
-        const updatedCandles = [...prev[assetSymbol].candles.slice(0, -1), updatedCandle];
-        const analysis = analyzeWSBot(updatedCandles, assetSymbol, 'M1');
-
-        return {
-          ...prev,
-          [assetSymbol]: { candles: updatedCandles, analysis, lastUpdate: Date.now() }
-        };
-      });
-    });
-
-    return () => ws.close();
-  }, [isRealMode, activeAssets, apiKey, isMarketOpen]);
-
-  // Loop de Simulação (Fallback ou Mock Mode)
-  useEffect(() => {
-    if (isRealMode) return;
-
-    const interval = setInterval(() => {
-      setSessionIndex(prev => {
-        const lastCandle = prev.candles[prev.candles.length - 1];
-        const nextCandle = generateNextCandle(lastCandle, 1);
-        
-        const change = nextCandle.close - lastCandle.close;
-        setMarketSentiment(s => {
-          const shift = change * 100;
-          const newBuyers = Math.max(10, Math.min(90, s.buyers - shift));
-          return { buyers: newBuyers, sellers: 100 - newBuyers };
-        });
-
-        return {
-          ...prev,
-          candles: [...prev.candles.slice(-199), nextCandle]
-        };
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isRealMode]);
-
-  const currentData = allAssetsData[asset] || { 
-    candles: [], 
-    analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null }
-  };
+  const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null } };
 
   return (
     <TradingContext.Provider value={{
       asset, setAsset,
       timeframe: 'M1', setTimeframe: () => {},
       candles: currentData.candles,
-      d1Bias: isMarketOpen ? d1Bias : 'NEUTRAL',
-      premiumPct: isMarketOpen ? premiumPct : 50,
-      activeSignal: isMarketOpen ? currentData.analysis.activeSignal : null,
-      signalsData: mockSignalsData,
+      d1Bias: currentData.analysis.d1Bias,
+      premiumPct: currentData.analysis.premiumPct,
+      activeSignal: dbSignals[0]?.status === 'PENDING' ? dbSignals[0] : null,
+      signalsData: {
+        last_updated: new Date().toISOString(),
+        active_signal: dbSignals[0],
+        signals: dbSignals,
+        market_context: { pairs: [], activity_log: [] }
+      },
       isLoading,
-      currentSession,
+      currentSession: 'LONDON',
       activeAssets,
-      isMarketOpen,
+      isMarketOpen: true,
       allAssetsData,
       marketSentiment,
       sessionIndex
