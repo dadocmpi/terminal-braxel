@@ -3,11 +3,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { RiskCalculator } from './RiskCalculator';
+import { SettingsDialog } from './SettingsDialog';
 
 export const DashboardHeader = () => {
   const location = useLocation();
   const isTerminal1 = location.pathname === '/';
   const isTerminal2 = location.pathname === '/analytics';
+  const isRealMode = localStorage.getItem('data_mode') === 'real';
 
   return (
     <div className="sticky top-0 z-50 w-full bg-black border-b border-white/10">
@@ -17,6 +19,11 @@ export const DashboardHeader = () => {
             <span className="text-sm font-black tracking-[0.2em] text-white hidden sm:block">
               BRAXEL<span className="text-primary">MARKETS</span>
             </span>
+            {isRealMode && (
+              <div className="px-1.5 py-0.5 bg-bull/10 border border-bull/30 text-[7px] text-bull font-black rounded-none animate-pulse">
+                LIVE DATA
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-1.5">
@@ -46,6 +53,7 @@ export const DashboardHeader = () => {
         <div className="flex items-center gap-4">
           <div className="h-4 w-[1px] bg-white/10 mx-2" />
           {isTerminal1 && <RiskCalculator />}
+          <SettingsDialog />
         </div>
       </header>
     </div>
