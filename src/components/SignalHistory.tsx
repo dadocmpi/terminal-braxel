@@ -14,7 +14,7 @@ export const SignalHistory = () => {
     const weeklySignals = signalsData.signals.filter(s => new Date(s.time) >= startOfWeek);
     
     if (weeklySignals.length === 0) {
-      alert("Nenhum sinal encontrado para esta semana.");
+      alert("No signals found for this week.");
       return;
     }
 

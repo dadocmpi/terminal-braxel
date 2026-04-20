@@ -49,7 +49,7 @@ export const CandlestickChart = () => {
     });
 
     const emaSeries = chart.addLineSeries({
-      color: '#1AE6D5', // Convertido de hsl(185, 80%, 50%) para Hex
+      color: '#1AE6D5',
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -91,7 +91,7 @@ export const CandlestickChart = () => {
         emaRef.current.setData(emaData as any);
         chartRef.current?.timeScale().fitContent();
       } catch (err) {
-        console.error("Erro ao atualizar dados do gráfico:", err);
+        console.error("Error updating chart data:", err);
       }
     }
   }, [candles]);

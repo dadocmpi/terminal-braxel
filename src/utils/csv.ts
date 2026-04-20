@@ -22,7 +22,7 @@ export const downloadCSV = (data: any[], filename: string) => {
 export const getStartOfWeek = () => {
   const now = new Date();
   const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Segunda-feira
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
   const start = new Date(now.setDate(diff));
   start.setHours(0, 0, 0, 0);
   return start;
