@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Asset, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS } from '../types/trading';
 import { analyzeWSBot, generateMockCandles } from '../data/mockData';
 import { supabase } from '../lib/supabase';
-import { fetchHistoricalData } from '../services/marketData';
+import { fetchHistoricalData, setupRealtimeWS } from '../services/marketData';
 import { requestNotificationPermission, sendSignalNotification } from '../utils/notifications';
 import { showSuccess } from '../utils/toast';
 
@@ -30,7 +30,6 @@ interface TradingContextType {
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
-// CHAVE DE API CONECTADA DIRETAMENTE
 const TWELVE_DATA_API_KEY = '65e9481bb8634db4b208afd0af073fdb';
 
 const getSession = (): MarketSession => {
@@ -57,12 +56,14 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [dbSignals, setDbSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const wsRef = useRef<WebSocket | null>(null);
   
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
     name: getIndexName(currentSession),
     candles: generateMockCandles(100, 104.5)
   });
 
+  // Sincronização de Sessão
   useEffect(() => {
     const interval = setInterval(() => {
       const newSession = getSession();
@@ -73,10 +74,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setAsset(newAssets[0]);
         setSessionIndex(prev => ({ ...prev, name: getIndexName(newSession) }));
       }
-    }, 10000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [currentSession]);
 
+  // Supabase & Notificações
   useEffect(() => {
     requestNotificationPermission();
     const fetchSignals = async () => {
@@ -95,25 +97,64 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Inicialização de Dados e WebSocket
   useEffect(() => {
     const initData = async () => {
+      setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
+      
       for (const a of activeAssets) {
-        // Usando a chave fornecida para buscar dados reais
         let candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
-        
-        // Fallback para mock se a API falhar ou estiver fora de horário
         if (candles.length === 0) {
           candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
         }
-        
         const analysis = analyzeWSBot(candles, a, 'M1');
         initialData[a] = { candles, analysis, lastUpdate: Date.now() };
       }
+      
       setAllAssetsData(initialData);
       setIsLoading(false);
+
+      // Configurar WebSocket para Preços Real-Time
+      if (wsRef.current) wsRef.current.close();
+      
+      wsRef.current = setupRealtimeWS(activeAssets, TWELVE_DATA_API_KEY, (data) => {
+        if (data.symbol && data.price) {
+          const symbol = data.symbol as Asset;
+          const price = parseFloat(data.price);
+          
+          setAllAssetsData(prev => {
+            const assetData = prev[symbol];
+            if (!assetData) return prev;
+
+            const newCandles = [...assetData.candles];
+            const lastCandle = { ...newCandles[newCandles.length - 1] };
+            
+            // Atualiza o candle atual com o novo preço do tick
+            lastCandle.close = price;
+            if (price > lastCandle.high) lastCandle.high = price;
+            if (price < lastCandle.low) lastCandle.low = price;
+            
+            newCandles[newCandles.length - 1] = lastCandle;
+            
+            return {
+              ...prev,
+              [symbol]: {
+                ...assetData,
+                candles: newCandles,
+                lastUpdate: Date.now()
+              }
+            };
+          });
+        }
+      });
     };
+
     initData();
+
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+    };
   }, [activeAssets]);
 
   const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null } };
