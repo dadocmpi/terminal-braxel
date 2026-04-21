@@ -5,7 +5,12 @@ import { Plus } from 'lucide-react';
 
 export const Watchlist = () => {
   const { allAssetsData, setAsset } = useTrading();
-  const assets: Asset[] = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY'];
+  
+  // Lista completa de todos os pares operados pela BRAXEL
+  const assets: Asset[] = [
+    'EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 
+    'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'
+  ];
 
   return (
     <div className="bg-black border border-white/10 h-full flex flex-col">

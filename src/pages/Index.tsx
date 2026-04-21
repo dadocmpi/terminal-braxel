@@ -12,7 +12,6 @@ import { PremiumDiscountGrid } from '../components/PremiumDiscountGrid';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { Watchlist } from '../components/Watchlist';
-import { InstitutionalBrain } from '../components/InstitutionalBrain';
 
 const LiveTerminal = () => {
   return (
@@ -25,13 +24,10 @@ const LiveTerminal = () => {
         <ActiveSignal />
         
         <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-          {/* Coluna Esquerda: Watchlist e Brain (3 cols) */}
+          {/* Coluna Esquerda: Watchlist completa (3 cols) */}
           <div className="hidden lg:flex col-span-3 border-r border-white/5 flex-col bg-black">
-            <div className="flex-1 border-b border-white/5">
+            <div className="flex-1">
               <Watchlist />
-            </div>
-            <div className="p-4">
-              <InstitutionalBrain />
             </div>
           </div>
 
