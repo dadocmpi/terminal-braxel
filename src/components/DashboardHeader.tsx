@@ -3,12 +3,17 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { RiskCalculator } from './RiskCalculator';
-import { ShieldCheck, Activity } from 'lucide-react';
+import { ShieldCheck, Activity, Cloud, CloudOff } from 'lucide-react';
+import { useTrading } from '../contexts/TradingContext';
 
 export const DashboardHeader = () => {
   const location = useLocation();
+  const { signalsData } = useTrading();
   const isTerminal1 = location.pathname === '/';
   const isTerminal2 = location.pathname === '/analytics';
+  
+  // Verifica se há conexão com a nuvem (Supabase)
+  const isCloudConnected = !!signalsData;
 
   return (
     <div className="sticky top-0 z-50 w-full bg-black border-b border-white/10">
@@ -19,6 +24,19 @@ export const DashboardHeader = () => {
               <span className="text-sm font-black tracking-[0.3em] text-white">
                 BRAXEL
               </span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10">
+                {isCloudConnected ? (
+                  <>
+                    <Cloud className="w-2.5 h-2.5 text-primary animate-pulse" />
+                    <span className="text-[8px] font-black text-primary uppercase tracking-widest">Cloud Active</span>
+                  </>
+                ) : (
+                  <>
+                    <CloudOff className="w-2.5 h-2.5 text-bear" />
+                    <span className="text-[8px] font-black text-bear uppercase tracking-widest">Offline</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           
