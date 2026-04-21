@@ -1,8 +1,7 @@
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Asset } from '../types/trading';
-import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export const Watchlist = () => {
   const { allAssetsData, setAsset } = useTrading();
@@ -24,26 +23,16 @@ export const Watchlist = () => {
               const price = allAssetsData[a]?.candles.slice(-1)[0]?.close || 0;
               return (
                 <tr key={a} className="group hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => setAsset(a)}>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4">
                     <div className="flex flex-col">
                       <span className="text-[11px] font-black text-white">{a}</span>
                       <span className="text-[8px] text-muted-foreground font-mono">M1 FEED</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="text-[10px] font-mono font-bold text-primary">
+                  <td className="px-4 py-4 text-right">
+                    <span className="text-xs font-mono font-black text-primary">
                       {price > 0 ? price.toFixed(a.includes('JPY') ? 3 : 5) : '---'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="outline" size="icon" className="h-6 w-6 rounded-none border-bull/30 bg-bull/10 hover:bg-bull hover:text-black">
-                        <TrendingUp className="w-3 h-3" />
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-6 w-6 rounded-none border-bear/30 bg-bear/10 hover:bg-bear hover:text-black">
-                        <TrendingDown className="w-3 h-3" />
-                      </Button>
-                    </div>
                   </td>
                 </tr>
               );
