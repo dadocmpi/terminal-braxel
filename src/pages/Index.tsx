@@ -24,10 +24,10 @@ const LiveTerminal = () => {
           {/* Coluna Esquerda: Clocks e Gráfico Principal (8 cols) */}
           <div className="col-span-12 lg:col-span-8 border-r border-white/5 flex flex-col bg-black">
             <WorldClocks />
-            <div className="flex-1 relative w-full">
+            <div className="flex-[2] relative w-full">
               <MainIndexChart />
             </div>
-            <div className="h-1/3 border-t border-white/5">
+            <div className="flex-1 border-t border-white/5 overflow-hidden">
               <MarketNews />
             </div>
           </div>
@@ -37,7 +37,7 @@ const LiveTerminal = () => {
             <div className="flex-1 border-b border-white/5">
               <PremiumDiscountGrid />
             </div>
-            <div className="h-1/2">
+            <div className="flex-1 overflow-hidden">
               <ZoneActivityFeed />
             </div>
           </div>

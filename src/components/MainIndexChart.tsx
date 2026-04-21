@@ -24,18 +24,8 @@ export const MainIndexChart = () => {
         vertLines: { color: 'rgba(255, 255, 255, 0.02)' },
         horzLines: { color: 'rgba(255, 255, 255, 0.02)' },
       },
-      timeScale: {
-        borderVisible: false,
-        timeVisible: true,
-        secondsVisible: true,
-      },
-      rightPriceScale: {
-        borderVisible: false,
-        scaleMargins: {
-          top: 0.1,
-          bottom: 0.1,
-        },
-      },
+      timeScale: { borderVisible: false, timeVisible: true, secondsVisible: true },
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.1 } },
       handleScroll: false,
       handleScale: false,
     });
@@ -54,6 +44,37 @@ export const MainIndexChart = () => {
 
     const initialData = sessionIndex.candles.map(c => ({ time: c.time, value: c.close }));
     series.setData(initialData as any);
+
+    // Adicionar Linhas de S/R Automáticas
+    const prices = initialData.map(d => d.value);
+    const max = Math.max(...prices);
+    const min = Math.min(...prices);
+    const range = max - min;
+
+    // Resistências (Vermelho)
+    [max, max - range * 0.2].forEach((price, i) => {
+      series.createPriceLine({
+        price: price,
+        color: '#ef4444',
+        lineWidth: 1,
+        lineStyle: 2, // Dotted
+        axisLabelVisible: true,
+        title: `RESISTANCE ${i + 1}`,
+      });
+    });
+
+    // Suportes (Verde)
+    [min, min + range * 0.2].forEach((price, i) => {
+      series.createPriceLine({
+        price: price,
+        color: '#22c55e',
+        lineWidth: 1,
+        lineStyle: 2, // Dotted
+        axisLabelVisible: true,
+        title: `SUPPORT ${i + 1}`,
+      });
+    });
+
     chart.timeScale().fitContent();
 
     const handleResize = () => {
@@ -66,24 +87,10 @@ export const MainIndexChart = () => {
     };
     
     window.addEventListener('resize', handleResize);
-    const resizeObserver = new ResizeObserver(handleResize);
-    resizeObserver.observe(chartContainerRef.current);
-
     return () => {
       window.removeEventListener('resize', handleResize);
-      resizeObserver.disconnect();
       chart.remove();
     };
-  }, []);
-
-  useEffect(() => {
-    if (seriesRef.current && sessionIndex.candles.length > 0) {
-      const lastCandle = sessionIndex.candles[sessionIndex.candles.length - 1];
-      seriesRef.current.update({
-        time: lastCandle.time as any,
-        value: lastCandle.close
-      });
-    }
   }, [sessionIndex]);
 
   return (

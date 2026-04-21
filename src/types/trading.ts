@@ -19,49 +19,6 @@ export interface Candle {
   volume: number;
 }
 
-export interface OrderBlock {
-  id: string;
-  asset: Asset;
-  timeframe: Timeframe;
-  type: 'BUY' | 'SELL';
-  low: number;
-  high: number;
-  ageCandles: number;
-  status: 'active' | 'mitigated';
-  institutional_score: number;
-}
-
-export interface FairValueGap {
-  id: string;
-  asset: Asset;
-  timeframe: Timeframe;
-  type: 'BUY' | 'SELL';
-  low: number;
-  high: number;
-  status: 'active' | 'filled';
-}
-
-export interface MarketStructure {
-  type: 'HH' | 'HL' | 'LH' | 'LL' | 'BOS' | 'CHoCH';
-  price: number;
-  time: number;
-}
-
-export interface BankManipulation {
-  stop_hunt: boolean;
-  stop_hunt_pips: number;
-  wyckoff_pattern: string;
-  fixing_window: string;
-  score_bonus: number;
-}
-
-export interface ConfirmationGate {
-  stop_hunt: boolean;
-  choch: boolean;
-  of_aligned: boolean;
-  pillars_count: number;
-}
-
 export interface ActiveSignal {
   asset: Asset;
   direction: 'BUY' | 'SELL';
@@ -74,18 +31,8 @@ export interface ActiveSignal {
   tp2_pips: number;
   rr: number;
   confidence: number;
-  type_code: 'A' | 'B' | 'C' | 'D';
-  lot_size: number;
-  gate: ConfirmationGate;
-  manipulation: BankManipulation;
-  checklist: {
-    d1_aligned: boolean;
-    htf_aligned: boolean;
-    zone_touched: boolean;
-    of_confirmed: boolean;
-    m1_candle: boolean;
-    premium_ok: boolean;
-  };
+  status: 'PENDING' | 'WIN' | 'LOSS';
+  created_at: string;
 }
 
 export interface ActivityLog {
@@ -101,7 +48,7 @@ export interface SignalsData {
   active_signal: ActiveSignal | null;
   signals: any[];
   market_context: {
-    pairs: { asset: Asset; bias: BiasDirection; premium: number; zones: { buy: number; sell: number } }[];
+    pairs: any[];
     activity_log: ActivityLog[];
   };
 }
