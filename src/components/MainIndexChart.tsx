@@ -98,7 +98,7 @@ export const MainIndexChart = () => {
       <div className="terminal-header flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Activity className="w-3 h-3 text-primary" />
-          <span className="tracking-[0.2em] font-black">{sessionIndex.name} // INSTITUTIONAL FEED</span>
+          <span className="tracking-[0.2em] font-black">{sessionIndex.name}</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-primary font-black text-[9px] animate-pulse">LIVE DATA</span>
