@@ -52,7 +52,6 @@ export const MainIndexChart = () => {
     seriesRef.current = series;
     chartRef.current = chart;
 
-    // Inicializar com dados existentes
     const initialData = sessionIndex.candles.map(c => ({ time: c.time, value: c.close }));
     series.setData(initialData as any);
     chart.timeScale().fitContent();
@@ -67,8 +66,6 @@ export const MainIndexChart = () => {
     };
     
     window.addEventListener('resize', handleResize);
-    
-    // Observer para mudanças de tamanho do container (flex-1)
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(chartContainerRef.current);
 
@@ -79,7 +76,6 @@ export const MainIndexChart = () => {
     };
   }, []);
 
-  // Atualização incremental (Real-time)
   useEffect(() => {
     if (seriesRef.current && sessionIndex.candles.length > 0) {
       const lastCandle = sessionIndex.candles[sessionIndex.candles.length - 1];
@@ -95,10 +91,10 @@ export const MainIndexChart = () => {
       <div className="terminal-header flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Activity className="w-3 h-3 text-primary" />
-          <span className="tracking-[0.2em]">{sessionIndex.name}</span>
+          <span className="tracking-[0.2em] font-black">DXY INDEX // INSTITUTIONAL FEED</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-primary font-black text-[9px] animate-pulse">LIVE FEED (1S)</span>
+          <span className="text-primary font-black text-[9px] animate-pulse">LIVE DATA</span>
           <span className="text-white font-mono text-xs tabular-nums">
             {sessionIndex.candles[sessionIndex.candles.length-1]?.close.toFixed(3)}
           </span>
