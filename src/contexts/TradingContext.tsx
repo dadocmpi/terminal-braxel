@@ -32,9 +32,12 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 const getSession = (): MarketSession => {
   const hour = new Date().getUTCHours();
-  if (hour >= 8 && hour < 16) return 'LONDON';
+  
+  // Prioridade de Nova York durante o overlap (13h - 16h UTC)
   if (hour >= 13 && hour < 21) return 'NEW_YORK';
+  if (hour >= 8 && hour < 16) return 'LONDON';
   if (hour >= 0 && hour < 8) return 'TOKYO';
+  
   return 'CLOSE';
 };
 
