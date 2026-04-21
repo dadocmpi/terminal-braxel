@@ -38,6 +38,15 @@ const getSession = (): MarketSession => {
   return 'CLOSE';
 };
 
+const getIndexName = (session: MarketSession): string => {
+  switch (session) {
+    case 'LONDON': return 'GBP/EUR STRENGTH';
+    case 'NEW_YORK': return 'DXY INDEX';
+    case 'TOKYO': return 'JPY STRENGTH';
+    default: return 'GLOBAL INDEX';
+  }
+};
+
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentSession, setCurrentSession] = useState<MarketSession>(getSession());
   const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession]);
@@ -47,22 +56,24 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(true);
   
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
-    name: 'DXY INDEX',
+    name: getIndexName(currentSession),
     candles: generateMockCandles(100, 104.5)
   });
   
   const apiKey = localStorage.getItem('twelve_data_key');
   const isRealMode = localStorage.getItem('data_mode') === 'real' && !!apiKey;
 
-  // Atualização automática de sessão a cada minuto
   useEffect(() => {
     const interval = setInterval(() => {
       const newSession = getSession();
       if (newSession !== currentSession) {
         setCurrentSession(newSession);
-        setActiveAssets(SESSION_ASSETS[newSession]);
+        const newAssets = SESSION_ASSETS[newSession];
+        setActiveAssets(newAssets);
+        setAsset(newAssets[0]);
+        setSessionIndex(prev => ({ ...prev, name: getIndexName(newSession) }));
       }
-    }, 60000);
+    }, 10000); // Checa a cada 10 segundos para resposta rápida
     return () => clearInterval(interval);
   }, [currentSession]);
 
