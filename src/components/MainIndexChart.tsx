@@ -45,33 +45,33 @@ export const MainIndexChart = () => {
     const initialData = sessionIndex.candles.map(c => ({ time: c.time, value: c.close }));
     series.setData(initialData as any);
 
-    // Adicionar Linhas de S/R Automáticas
+    // Adicionar Linhas de S/R Automáticas (Apenas as linhas, sem nomes)
     const prices = initialData.map(d => d.value);
     const max = Math.max(...prices);
     const min = Math.min(...prices);
     const range = max - min;
 
     // Resistências (Vermelho)
-    [max, max - range * 0.2].forEach((price, i) => {
+    [max, max - range * 0.2].forEach((price) => {
       series.createPriceLine({
         price: price,
         color: '#ef4444',
         lineWidth: 1,
         lineStyle: 2, // Dotted
-        axisLabelVisible: true,
-        title: `RESISTANCE ${i + 1}`,
+        axisLabelVisible: false,
+        title: '',
       });
     });
 
     // Suportes (Verde)
-    [min, min + range * 0.2].forEach((price, i) => {
+    [min, min + range * 0.2].forEach((price) => {
       series.createPriceLine({
         price: price,
         color: '#22c55e',
         lineWidth: 1,
         lineStyle: 2, // Dotted
-        axisLabelVisible: true,
-        title: `SUPPORT ${i + 1}`,
+        axisLabelVisible: false,
+        title: '',
       });
     });
 
