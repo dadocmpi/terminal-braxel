@@ -6,7 +6,6 @@ import { Plus } from 'lucide-react';
 export const Watchlist = () => {
   const { allAssetsData, setAsset } = useTrading();
   
-  // Lista completa de todos os pares operados pela BRAXEL
   const assets: Asset[] = [
     'EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 
     'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'
@@ -22,19 +21,23 @@ export const Watchlist = () => {
       </div>
       
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse h-full">
           <tbody className="divide-y divide-white/5">
             {assets.map((a) => {
               const price = allAssetsData[a]?.candles.slice(-1)[0]?.close || 0;
               return (
-                <tr key={a} className="group hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => setAsset(a)}>
-                  <td className="px-4 py-4">
+                <tr 
+                  key={a} 
+                  className="group hover:bg-white/[0.02] transition-colors cursor-pointer" 
+                  onClick={() => setAsset(a)}
+                >
+                  <td className="px-4 py-6 lg:py-8">
                     <div className="flex flex-col">
                       <span className="text-[11px] font-black text-white">{a}</span>
                       <span className="text-[8px] text-muted-foreground font-mono">M1 FEED</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-right">
+                  <td className="px-4 py-6 lg:py-8 text-right">
                     <span className="text-xs font-mono font-black text-primary">
                       {price > 0 ? price.toFixed(a.includes('JPY') ? 3 : 5) : '---'}
                     </span>

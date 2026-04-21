@@ -32,6 +32,11 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 const TWELVE_DATA_API_KEY = '65e9481bb8634db4b208afd0af073fdb';
 
+const ALL_OPERATED_ASSETS: Asset[] = [
+  'EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 
+  'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'
+];
+
 const getSession = (): MarketSession => {
   const hour = new Date().getUTCHours();
   if (hour >= 13 && hour < 21) return 'NEW_YORK';
@@ -104,7 +109,8 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
       
-      for (const a of activeAssets) {
+      // Inicializamos TODOS os pares operados para a Watchlist
+      for (const a of ALL_OPERATED_ASSETS) {
         let candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
         if (candles.length === 0) {
           candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
@@ -117,7 +123,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
 
       if (wsRef.current) wsRef.current.close();
-      wsRef.current = setupRealtimeWS(activeAssets, TWELVE_DATA_API_KEY, (data) => {
+      wsRef.current = setupRealtimeWS(ALL_OPERATED_ASSETS, TWELVE_DATA_API_KEY, (data) => {
         if (data.symbol && data.price) {
           const symbol = data.symbol as Asset;
           const price = parseFloat(data.price);
@@ -137,11 +143,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     initData();
     return () => { if (wsRef.current) wsRef.current.close(); };
-  }, [activeAssets]);
+  }, []);
 
   const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null } };
-
-  // O sinal ativo é o mais recente que ainda está PENDING no banco de dados
   const activeSignalFromDb = dbSignals.find(s => s.status === 'PENDING');
 
   return (
