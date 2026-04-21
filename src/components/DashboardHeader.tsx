@@ -3,7 +3,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { RiskCalculator } from './RiskCalculator';
-import { SettingsDialog } from './SettingsDialog';
 import { ShieldCheck, Activity } from 'lucide-react';
 
 export const DashboardHeader = () => {
@@ -50,7 +49,6 @@ export const DashboardHeader = () => {
         <div className="flex items-center gap-4">
           <div className="h-6 w-[1px] bg-white/10 mx-2" />
           {isTerminal1 && <RiskCalculator />}
-          <SettingsDialog />
         </div>
       </header>
     </div>

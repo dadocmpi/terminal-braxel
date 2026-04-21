@@ -30,14 +30,14 @@ interface TradingContextType {
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
+// CHAVE DE API CONECTADA DIRETAMENTE
+const TWELVE_DATA_API_KEY = '65e9481bb8634db4b208afd0af073fdb';
+
 const getSession = (): MarketSession => {
   const hour = new Date().getUTCHours();
-  
-  // Prioridade de Nova York durante o overlap (13h - 16h UTC)
   if (hour >= 13 && hour < 21) return 'NEW_YORK';
   if (hour >= 8 && hour < 16) return 'LONDON';
   if (hour >= 0 && hour < 8) return 'TOKYO';
-  
   return 'CLOSE';
 };
 
@@ -62,9 +62,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     name: getIndexName(currentSession),
     candles: generateMockCandles(100, 104.5)
   });
-  
-  const apiKey = localStorage.getItem('twelve_data_key');
-  const isRealMode = localStorage.getItem('data_mode') === 'real' && !!apiKey;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -102,7 +99,14 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const initData = async () => {
       const initialData: Record<string, AssetData> = {};
       for (const a of activeAssets) {
-        let candles = isRealMode ? await fetchHistoricalData(a, '1min', apiKey!) : generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
+        // Usando a chave fornecida para buscar dados reais
+        let candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
+        
+        // Fallback para mock se a API falhar ou estiver fora de horário
+        if (candles.length === 0) {
+          candles = generateMockCandles(100, a.includes('JPY') ? 150 : 1.1);
+        }
+        
         const analysis = analyzeWSBot(candles, a, 'M1');
         initialData[a] = { candles, analysis, lastUpdate: Date.now() };
       }
@@ -110,7 +114,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
     };
     initData();
-  }, [activeAssets, isRealMode, apiKey]);
+  }, [activeAssets]);
 
   const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null } };
 
