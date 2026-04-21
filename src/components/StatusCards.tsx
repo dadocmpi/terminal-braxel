@@ -1,64 +1,50 @@
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
-import { AlertTriangle, CheckCircle2, Timer, Coffee } from 'lucide-react';
+import { CheckCircle2, Timer, Activity } from 'lucide-react';
 
 export const StatusCards = () => {
   const { d1Bias, premiumPct, isMarketOpen } = useTrading();
   
   const getMarketCondition = () => {
-    if (!isMarketOpen || d1Bias === 'NEUTRAL') {
-      return { 
-        label: "MARKET CLOSED", 
-        sub: "ALGORITHM ON STANDBY", 
-        color: "text-muted-foreground", 
-        icon: <Coffee className="w-4 h-4" /> 
-      };
-    }
-
     const isPremium = premiumPct > 60;
     const isDiscount = premiumPct < 40;
-    const isEquilibrium = !isPremium && !isDiscount;
 
     if (d1Bias === 'BUY') {
       if (isDiscount) return { label: "OPTIMAL BUY ZONE", sub: "INSTITUTIONAL DISCOUNT", color: "text-bull", icon: <CheckCircle2 className="w-4 h-4" /> };
-      if (isPremium) return { label: "OVEREXTENDED - WAIT", sub: "PREMIUM LIQUIDITY AREA", color: "text-yellow-500", icon: <AlertTriangle className="w-4 h-4" /> };
-      return { label: "EQUILIBRIUM", sub: "FAIR VALUE AREA", color: "text-primary", icon: <Timer className="w-4 h-4" /> };
-    } else {
+      if (isPremium) return { label: "PREMIUM AREA", sub: "WAIT FOR RETRACEMENT", color: "text-yellow-500", icon: <Timer className="w-4 h-4" /> };
+      return { label: "EQUILIBRIUM", sub: "FAIR VALUE AREA", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
+    } else if (d1Bias === 'SELL') {
       if (isPremium) return { label: "OPTIMAL SELL ZONE", sub: "INSTITUTIONAL PREMIUM", color: "text-bear", icon: <CheckCircle2 className="w-4 h-4" /> };
-      if (isDiscount) return { label: "OVEREXTENDED - WAIT", sub: "DISCOUNT LIQUIDITY AREA", color: "text-yellow-500", icon: <AlertTriangle className="w-4 h-4" /> };
-      return { label: "EQUILIBRIUM", sub: "FAIR VALUE AREA", color: "text-primary", icon: <Timer className="w-4 h-4" /> };
+      if (isDiscount) return { label: "DISCOUNT AREA", sub: "WAIT FOR RETRACEMENT", color: "text-yellow-500", icon: <Timer className="w-4 h-4" /> };
+      return { label: "EQUILIBRIUM", sub: "FAIR VALUE AREA", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
     }
+    
+    return { label: "MARKET ANALYSIS", sub: "REAL-TIME FEED ACTIVE", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
   };
 
   const condition = getMarketCondition();
 
   return (
     <div className="grid grid-cols-12 gap-0 border-b border-white/5">
-      {/* Session Bias Card */}
       <div className="col-span-12 lg:col-span-6 p-4 border-r border-white/5 bg-[#050401]">
         <span className="text-[10px] text-primary/70 uppercase tracking-[0.3em] font-black">SESSION BIAS</span>
         <div className="mt-1 flex items-center justify-between">
           <h2 className={`text-2xl font-black tracking-tighter uppercase ${
             d1Bias === 'BUY' ? 'text-bull glow-text-bull' : 
             d1Bias === 'SELL' ? 'text-bear glow-text-bear' : 
-            'text-muted-foreground'
+            'text-white'
           }`}>
             {d1Bias === 'BUY' ? 'BULLISH' : d1Bias === 'SELL' ? 'BEARISH' : 'NEUTRAL'}
           </h2>
           <div className="flex items-center gap-2">
-            <div className={`w-1 h-1 rounded-full ${
-              d1Bias === 'BUY' ? 'bg-bull animate-pulse' : 
-              d1Bias === 'SELL' ? 'bg-bear animate-pulse' : 
-              'bg-muted-foreground'
-            }`} />
+            <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
             <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-widest opacity-50">
-              {d1Bias === 'NEUTRAL' ? 'Engine Resting' : 'Order Flow Active'}
+              Real-Time Order Flow
             </p>
           </div>
         </div>
       </div>
 
-      {/* Session Premium/Discount Card */}
       <div className="col-span-12 lg:col-span-6 p-4 bg-black">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-4">
@@ -85,9 +71,7 @@ export const StatusCards = () => {
           </div>
           
           <div 
-            className={`absolute top-0 bottom-0 w-0.5 z-10 transition-all duration-1000 ease-in-out ${
-              isMarketOpen ? 'bg-primary shadow-[0_0_10px_#EAB308]' : 'bg-muted-foreground opacity-30'
-            }`} 
+            className="absolute top-0 bottom-0 w-0.5 z-10 transition-all duration-1000 ease-in-out bg-primary shadow-[0_0_10px_#EAB308]" 
             style={{ left: `${premiumPct}%`, transform: 'translateX(-50%)' }} 
           />
         </div>
