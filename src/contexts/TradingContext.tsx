@@ -40,7 +40,7 @@ const getSession = (): MarketSession => {
 
 const getIndexName = (session: MarketSession): string => {
   switch (session) {
-    case 'LONDON': return 'GBP/EUR STRENGTH';
+    case 'LONDON': return 'GBP INDEX';
     case 'NEW_YORK': return 'DXY INDEX';
     case 'TOKYO': return 'JPY STRENGTH';
     default: return 'GLOBAL INDEX';
@@ -73,7 +73,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setAsset(newAssets[0]);
         setSessionIndex(prev => ({ ...prev, name: getIndexName(newSession) }));
       }
-    }, 10000); // Checa a cada 10 segundos para resposta rápida
+    }, 10000);
     return () => clearInterval(interval);
   }, [currentSession]);
 
