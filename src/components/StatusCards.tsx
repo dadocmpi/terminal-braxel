@@ -3,23 +3,23 @@ import { useTrading } from '../contexts/TradingContext';
 import { CheckCircle2, Timer, Activity } from 'lucide-react';
 
 export const StatusCards = () => {
-  const { d1Bias, premiumPct, isMarketOpen } = useTrading();
+  const { d1Bias, premiumPct } = useTrading();
   
   const getMarketCondition = () => {
     const isPremium = premiumPct > 60;
     const isDiscount = premiumPct < 40;
 
     if (d1Bias === 'BUY') {
-      if (isDiscount) return { label: "OPTIMAL BUY ZONE", sub: "INSTITUTIONAL DISCOUNT", color: "text-bull", icon: <CheckCircle2 className="w-4 h-4" /> };
-      if (isPremium) return { label: "PREMIUM AREA", sub: "WAIT FOR RETRACEMENT", color: "text-yellow-500", icon: <Timer className="w-4 h-4" /> };
-      return { label: "EQUILIBRIUM", sub: "FAIR VALUE AREA", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
+      if (isDiscount) return { label: "OPTIMAL BUY ZONE", color: "text-bull", icon: <CheckCircle2 className="w-4 h-4" /> };
+      if (isPremium) return { label: "PREMIUM AREA", color: "text-yellow-500", icon: <Timer className="w-4 h-4" /> };
+      return { label: "EQUILIBRIUM", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
     } else if (d1Bias === 'SELL') {
-      if (isPremium) return { label: "OPTIMAL SELL ZONE", sub: "INSTITUTIONAL PREMIUM", color: "text-bear", icon: <CheckCircle2 className="w-4 h-4" /> };
-      if (isDiscount) return { label: "DISCOUNT AREA", sub: "WAIT FOR RETRACEMENT", color: "text-yellow-500", icon: <Timer className="w-4 h-4" /> };
-      return { label: "EQUILIBRIUM", sub: "FAIR VALUE AREA", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
+      if (isPremium) return { label: "OPTIMAL SELL ZONE", color: "text-bear", icon: <CheckCircle2 className="w-4 h-4" /> };
+      if (isDiscount) return { label: "DISCOUNT AREA", color: "text-yellow-500", icon: <Timer className="w-4 h-4" /> };
+      return { label: "EQUILIBRIUM", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
     }
     
-    return { label: "MARKET ANALYSIS", sub: "REAL-TIME FEED ACTIVE", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
+    return { label: "MARKET ANALYSIS", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
   };
 
   const condition = getMarketCondition();
@@ -38,9 +38,6 @@ export const StatusCards = () => {
           </h2>
           <div className="flex items-center gap-2">
             <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-            <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-widest opacity-50">
-              Real-Time Order Flow
-            </p>
           </div>
         </div>
       </div>
@@ -59,15 +56,9 @@ export const StatusCards = () => {
         
         <div className="relative h-4 flex items-center bg-[#080808] border border-white/5">
           <div className="absolute inset-0 flex">
-            <div className="h-full w-1/3 border-r border-white/5 flex items-center justify-center">
-              <span className="text-[7px] text-bull font-black uppercase opacity-30">DISC</span>
-            </div>
-            <div className="h-full w-1/3 border-r border-white/5 flex items-center justify-center">
-              <span className="text-[7px] text-muted-foreground font-black uppercase opacity-30">EQ</span>
-            </div>
-            <div className="h-full w-1/3 flex items-center justify-center">
-              <span className="text-[7px] text-bear font-black uppercase opacity-30">PREM</span>
-            </div>
+            <div className="h-full w-1/3 border-r border-white/5" />
+            <div className="h-full w-1/3 border-r border-white/5" />
+            <div className="h-full w-1/3" />
           </div>
           
           <div 

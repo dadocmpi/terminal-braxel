@@ -42,11 +42,6 @@ export const PremiumDiscountGrid = () => {
                   style={{ left: `${premium}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[7px] font-black text-muted-foreground/40 uppercase tracking-widest">
-                <span>Discount</span>
-                <span>Equilibrium</span>
-                <span>Premium</span>
-              </div>
             </div>
           );
         })}

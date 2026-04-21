@@ -13,7 +13,7 @@ export const ActiveSignal = () => {
       <div className="flex items-center gap-3">
         <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_#EAB308]" />
         <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">
-          Neural Engine: Scanning Institutional Liquidity...
+          Analyzing Market Structure & Seeking Entry...
         </span>
       </div>
       <div className="flex gap-6">
@@ -65,7 +65,7 @@ export const ActiveSignal = () => {
           </div>
         </div>
 
-        {/* Centro: Blocos de Preço (Estilo Imagem) */}
+        {/* Centro: Blocos de Preço */}
         <div className="col-span-12 lg:col-span-8 grid grid-cols-4 divide-x divide-white/5">
           <PriceBlock label="ENTRY" value={activeSignal.entry} color="text-primary" />
           <PriceBlock label="STOP LOSS" value={activeSignal.sl} color="text-bear" sub={`-${activeSignal.sl_pips.toFixed(1)} PIPS`} />
