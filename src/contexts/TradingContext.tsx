@@ -63,7 +63,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     candles: generateMockCandles(100, 104.5)
   });
 
-  // Sincronização de Sessão
   useEffect(() => {
     const interval = setInterval(() => {
       const newSession = getSession();
@@ -78,11 +77,14 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => clearInterval(interval);
   }, [currentSession]);
 
-  // Supabase & Notificações
   useEffect(() => {
     requestNotificationPermission();
     const fetchSignals = async () => {
-      const { data } = await supabase.from('signals').select('*').order('created_at', { ascending: false }).limit(50);
+      const { data } = await supabase
+        .from('signals')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (data) setDbSignals(data);
     };
     fetchSignals();
@@ -91,13 +93,12 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .on('postgres_changes', { event: 'INSERT', table: 'signals' }, (payload) => {
         setDbSignals(prev => [payload.new, ...prev]);
         sendSignalNotification(payload.new.asset, payload.new.direction, payload.new.entry);
-        showSuccess(`Novo sinal: ${payload.new.asset}`);
+        showSuccess(`🚨 NOVO SINAL CLOUD: ${payload.new.asset} ${payload.new.direction}`);
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Inicialização de Dados e WebSocket
   useEffect(() => {
     const initData = async () => {
       setIsLoading(true);
@@ -115,49 +116,33 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setAllAssetsData(initialData);
       setIsLoading(false);
 
-      // Configurar WebSocket para Preços Real-Time
       if (wsRef.current) wsRef.current.close();
-      
       wsRef.current = setupRealtimeWS(activeAssets, TWELVE_DATA_API_KEY, (data) => {
         if (data.symbol && data.price) {
           const symbol = data.symbol as Asset;
           const price = parseFloat(data.price);
-          
           setAllAssetsData(prev => {
             const assetData = prev[symbol];
             if (!assetData) return prev;
-
             const newCandles = [...assetData.candles];
             const lastCandle = { ...newCandles[newCandles.length - 1] };
-            
-            // Atualiza o candle atual com o novo preço do tick
             lastCandle.close = price;
             if (price > lastCandle.high) lastCandle.high = price;
             if (price < lastCandle.low) lastCandle.low = price;
-            
             newCandles[newCandles.length - 1] = lastCandle;
-            
-            return {
-              ...prev,
-              [symbol]: {
-                ...assetData,
-                candles: newCandles,
-                lastUpdate: Date.now()
-              }
-            };
+            return { ...prev, [symbol]: { ...assetData, candles: newCandles, lastUpdate: Date.now() } };
           });
         }
       });
     };
-
     initData();
-
-    return () => {
-      if (wsRef.current) wsRef.current.close();
-    };
+    return () => { if (wsRef.current) wsRef.current.close(); };
   }, [activeAssets]);
 
   const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null } };
+
+  // O sinal ativo é o mais recente que ainda está PENDING no banco de dados
+  const activeSignalFromDb = dbSignals.find(s => s.status === 'PENDING');
 
   return (
     <TradingContext.Provider value={{
@@ -165,10 +150,10 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       candles: currentData.candles,
       d1Bias: currentData.analysis.d1Bias,
       premiumPct: currentData.analysis.premiumPct,
-      activeSignal: dbSignals[0]?.status === 'PENDING' ? dbSignals[0] : null,
+      activeSignal: activeSignalFromDb || null,
       signalsData: {
         last_updated: new Date().toISOString(),
-        active_signal: dbSignals[0],
+        active_signal: activeSignalFromDb || null,
         signals: dbSignals,
         market_context: { pairs: [], activity_log: [] }
       },
