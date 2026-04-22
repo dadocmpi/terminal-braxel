@@ -38,10 +38,22 @@ const ALL_OPERATED_ASSETS: Asset[] = [
 ];
 
 const getSession = (): MarketSession => {
-  const hour = new Date().getUTCHours();
-  if (hour >= 13 && hour < 21) return 'NEW_YORK';
-  if (hour >= 8 && hour < 16) return 'LONDON';
-  if (hour >= 0 && hour < 8) return 'TOKYO';
+  // Obtém a hora atual em New York
+  const nyTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    hour12: false
+  }).formatToParts(new Date());
+  
+  const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
+
+  // London: 03:00 - 12:00 NY
+  if (hour >= 3 && hour < 12) return 'LONDON';
+  // NY: 08:00 - 17:00 NY
+  if (hour >= 8 && hour < 17) return 'NEW_YORK';
+  // Tokyo: 19:00 - 04:00 NY
+  if (hour >= 19 || hour < 4) return 'TOKYO';
+  
   return 'CLOSE';
 };
 
@@ -109,7 +121,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
       
-      // Inicializamos TODOS os pares operados para a Watchlist
       for (const a of ALL_OPERATED_ASSETS) {
         let candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
         if (candles.length === 0) {

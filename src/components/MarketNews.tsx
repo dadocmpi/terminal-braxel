@@ -15,23 +15,18 @@ interface NewsItem {
 export const MarketNews = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const fetchNews = async () => {
       setLoading(true);
+      // Simulando notícias no horário de Madrid (CET/CEST)
       const mockNews: NewsItem[] = [
-        { time: '04:00', impact: 'HIGH', event: 'German CPI MoM', currency: 'EUR' },
-        { time: '07:00', impact: 'MED', event: 'BoE Gov Bailey Speaks', currency: 'GBP' },
-        { time: '09:30', impact: 'HIGH', event: 'ECB Monetary Policy Meeting', currency: 'EUR' },
-        { time: '11:00', impact: 'LOW', event: 'Construction Output', currency: 'GBP' },
+        { time: '08:00', impact: 'HIGH', event: 'German CPI MoM', currency: 'EUR' },
+        { time: '10:30', impact: 'MED', event: 'BoE Gov Bailey Speaks', currency: 'GBP' },
+        { time: '14:15', impact: 'HIGH', event: 'ECB Monetary Policy Meeting', currency: 'EUR' },
         { time: '14:30', impact: 'HIGH', event: 'US Core CPI MoM', currency: 'USD' },
-        { time: '23:50', impact: 'HIGH', event: 'BoJ Monetary Policy Meeting', currency: 'JPY' },
+        { time: '16:00', impact: 'MED', event: 'US Consumer Sentiment', currency: 'USD' },
+        { time: '20:00', impact: 'LOW', event: 'Fed Beige Book', currency: 'USD' },
       ].sort((a, b) => a.time.localeCompare(b.time));
 
       setNews(mockNews);
@@ -43,10 +38,21 @@ export const MarketNews = () => {
 
   const isPast = (newsTime: string) => {
     const [hours, minutes] = newsTime.split(':').map(Number);
-    const now = new Date();
-    const newsDate = new Date(now);
-    newsDate.setUTCHours(hours, minutes, 0, 0);
-    return now > newsDate;
+    
+    // Obtém a hora atual em Madrid
+    const madridTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Madrid',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    }).formatToParts(new Date());
+
+    const currentHours = parseInt(madridTime.find(p => p.type === 'hour')?.value || '0');
+    const currentMinutes = parseInt(madridTime.find(p => p.type === 'minute')?.value || '0');
+
+    if (currentHours > hours) return true;
+    if (currentHours === hours && currentMinutes >= minutes) return true;
+    return false;
   };
 
   const ImpactBars = ({ level, past }: { level: 'LOW' | 'MED' | 'HIGH', past: boolean }) => {
@@ -73,11 +79,11 @@ export const MarketNews = () => {
       <div className="terminal-header flex items-center justify-between px-4 py-2 border-b border-white/5">
         <div className="flex items-center gap-2">
           <Globe className="w-3 h-3 text-primary" />
-          <span className="text-[9px] font-black uppercase tracking-[0.2em]">Institutional News Feed</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.2em]">Madrid News Feed (CET)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-bear animate-pulse" />
-          <span className="text-[8px] font-mono text-bear uppercase font-bold">Live API</span>
+          <span className="text-[8px] font-mono text-bear uppercase font-bold">Live</span>
         </div>
       </div>
       
@@ -99,7 +105,7 @@ export const MarketNews = () => {
               >
                 <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-white/5 pr-2">
                   <span className="text-[10px] font-mono font-black text-white/80">{item.time}</span>
-                  <span className="text-[7px] text-muted-foreground uppercase font-bold">GMT</span>
+                  <span className="text-[7px] text-muted-foreground uppercase font-bold">MAD</span>
                 </div>
                 
                 <div className="flex-1 min-w-0">
@@ -124,8 +130,8 @@ export const MarketNews = () => {
       </div>
       
       <div className="px-4 py-1.5 bg-white/[0.01] border-t border-white/5 flex justify-between items-center">
-        <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest">Filter: EUR/GBP/JPY</span>
-        <span className="text-[7px] font-mono text-primary/40">BRAXEL_API_V2</span>
+        <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest">Filter: High Impact</span>
+        <span className="text-[7px] font-mono text-primary/40">BRAXEL_MAD_V1</span>
       </div>
     </Card>
   );
