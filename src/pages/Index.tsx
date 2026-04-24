@@ -12,15 +12,13 @@ import { PremiumDiscountGrid } from '../components/PremiumDiscountGrid';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { Watchlist } from '../components/Watchlist';
-import { BrokerStatus } from '../components/BrokerStatus';
 
 const LiveTerminal = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <DashboardHeader />
-      <div className="flex justify-between items-center bg-black border-b border-white/5 pr-4">
+      <div className="bg-black border-b border-white/5">
         <SessionTimelineBar />
-        <BrokerStatus />
       </div>
       
       <main className="flex-1 flex flex-col overflow-hidden">
