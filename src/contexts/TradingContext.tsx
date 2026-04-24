@@ -38,7 +38,6 @@ const ALL_OPERATED_ASSETS: Asset[] = [
 ];
 
 const getSession = (): MarketSession => {
-  // Obtém a hora atual em New York
   const nyTime = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
     hour: 'numeric',
@@ -47,11 +46,8 @@ const getSession = (): MarketSession => {
   
   const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
 
-  // London: 03:00 - 12:00 NY
   if (hour >= 3 && hour < 12) return 'LONDON';
-  // NY: 08:00 - 17:00 NY
   if (hour >= 8 && hour < 17) return 'NEW_YORK';
-  // Tokyo: 19:00 - 04:00 NY
   if (hour >= 19 || hour < 4) return 'TOKYO';
   
   return 'CLOSE';
@@ -62,7 +58,7 @@ const getIndexName = (session: MarketSession): string => {
     case 'LONDON': return 'GBP INDEX';
     case 'NEW_YORK': return 'DXY INDEX';
     case 'TOKYO': return 'JPY STRENGTH';
-    default: return 'GLOBAL INDEX';
+    default: return 'NASDAQ 100'; // NASDAQ quando fora de sessões Forex
   }
 };
 
@@ -77,7 +73,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
     name: getIndexName(currentSession),
-    candles: generateMockCandles(100, 104.5)
+    candles: generateMockCandles(100, currentSession === 'CLOSE' ? 18000 : 104.5)
   });
 
   useEffect(() => {
@@ -88,7 +84,14 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const newAssets = SESSION_ASSETS[newSession];
         setActiveAssets(newAssets);
         setAsset(newAssets[0]);
-        setSessionIndex(prev => ({ ...prev, name: getIndexName(newSession) }));
+        
+        // Atualiza o índice e gera candles apropriados (Preço do NASDAQ é maior)
+        const indexName = getIndexName(newSession);
+        const basePrice = indexName === 'NASDAQ 100' ? 18250 : 104.5;
+        setSessionIndex({ 
+          name: indexName, 
+          candles: generateMockCandles(100, basePrice) 
+        });
       }
     }, 60000);
     return () => clearInterval(interval);
