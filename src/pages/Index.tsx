@@ -12,6 +12,7 @@ import { PremiumDiscountGrid } from '../components/PremiumDiscountGrid';
 import { ZoneActivityFeed } from '../components/ZoneActivityFeed';
 import { SessionTimelineBar } from '../components/SessionTimelineBar';
 import { Watchlist } from '../components/Watchlist';
+import { CopytradeStatus } from '../components/CopytradeStatus';
 import { Lock, ShieldAlert } from 'lucide-react';
 
 const WeekendOverlay = () => (
@@ -65,6 +66,9 @@ const LiveTerminal = () => {
           <div className="hidden lg:flex col-span-3 border-r border-white/5 flex-col bg-black">
             <div className="flex-1">
               <Watchlist />
+            </div>
+            <div className="p-4 border-t border-white/5">
+              <CopytradeStatus />
             </div>
           </div>
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTrading } from '../contexts/TradingContext';
 import { Badge } from "@/components/ui/badge";
-import { ArrowDown, ArrowUp, Check, ShieldCheck, Zap, Target, Lock } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ShieldCheck, Zap, Target, Lock, BarChart3 } from 'lucide-react';
 
 export const ActiveSignal = () => {
   const { activeSignal } = useTrading();
@@ -30,21 +30,37 @@ export const ActiveSignal = () => {
   const isShort = activeSignal.direction === 'SELL';
   const colorClass = isShort ? 'text-bear' : 'text-bull';
   const bgClass = isShort ? 'bg-bear/10 border-bear/20' : 'bg-bull/10 border-bull/20';
+  
+  // Cálculo de força baseado em confluências (simulado)
+  const strength = activeSignal.confidence || 85;
 
   return (
-    <div className={`bg-black border-b ${isShort ? 'border-b-bear' : 'border-b-bull'} overflow-hidden`}>
+    <div className={`bg-black border-b ${isShort ? 'border-b-bear' : 'border-b-bull'} overflow-hidden relative`}>
+      {/* Progress Bar de Força do Sinal */}
+      <div className="absolute top-0 left-0 w-full h-0.5 bg-white/5">
+        <div 
+          className={`h-full transition-all duration-1000 ${isShort ? 'bg-bear' : 'bg-bull'}`} 
+          style={{ width: `${strength}%` }}
+        />
+      </div>
+
       <div className="grid grid-cols-12">
         {/* Lado Esquerdo: Direção e Checklist */}
         <div className="col-span-12 lg:col-span-4 p-6 border-r border-white/5 bg-[#050505]">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`p-2 ${bgClass} border`}>
-              {isShort ? <ArrowDown className={`w-6 h-6 ${colorClass}`} /> : <ArrowUp className={`w-6 h-6 ${colorClass}`} />}
-            </div>
-            <div>
-              <h2 className={`text-2xl font-black tracking-tighter uppercase ${colorClass}`}>
-                {activeSignal.direction} {activeSignal.asset}
-              </h2>
-              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Institutional Order Flow</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 ${bgClass} border`}>
+                {isShort ? <ArrowDown className={`w-6 h-6 ${colorClass}`} /> : <ArrowUp className={`w-6 h-6 ${colorClass}`} />}
+              </div>
+              <div>
+                <h2 className={`text-2xl font-black tracking-tighter uppercase ${colorClass}`}>
+                  {activeSignal.direction} {activeSignal.asset}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Institutional Flow</span>
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-[7px] h-4">A+ SETUP</Badge>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -62,6 +78,14 @@ export const ActiveSignal = () => {
                 <span className="text-[8px] font-bold text-white/70 uppercase tracking-tighter">{item.label}</span>
               </div>
             ))}
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
+              <span className="text-[8px] font-black text-bull uppercase tracking-widest">Copytrade: Executed</span>
+            </div>
+            <span className="text-[8px] font-mono text-muted-foreground">ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
           </div>
         </div>
 
