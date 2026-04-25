@@ -53,9 +53,10 @@ const getSession = (): MarketSession => {
   
   const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
 
-  if (hour >= 3 && hour < 12) return 'LONDON';
-  if (hour >= 8 && hour < 17) return 'NEW_YORK';
-  if (hour >= 19 || hour < 4) return 'TOKYO';
+  // Novos horários baseados na solicitação (NY Time)
+  if (hour >= 5 && hour < 8) return 'LONDON';
+  if (hour >= 8 && hour < 11) return 'NEW_YORK';
+  if (hour >= 11 && hour < 14) return 'TOKYO';
   
   return 'CLOSE';
 };

@@ -2,9 +2,9 @@ import React from 'react';
 
 export const SessionTimelineBar = () => {
   const sessions = [
-    { name: 'LONDON', start: 3, end: 12, color: '#3b82f6' },
-    { name: 'NEW YORK', start: 8, end: 17, color: '#eab308' },
-    { name: 'TOKYO', start: 19, end: 4, color: '#ef4444' },
+    { name: 'LONDON', start: 5, end: 8, color: '#3b82f6' },
+    { name: 'NEW YORK', start: 8, end: 11, color: '#eab308' },
+    { name: 'TOKYO', start: 11, end: 14, color: '#ef4444' },
   ];
 
   const nyTime = new Intl.DateTimeFormat('en-US', {
