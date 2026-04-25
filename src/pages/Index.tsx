@@ -47,11 +47,12 @@ const WeekendOverlay = () => (
 );
 
 const LiveTerminal = () => {
-  const { isWeekend } = useTrading();
+  // Desativado temporariamente a pedido do usuário para visualização
+  // const { isWeekend } = useTrading();
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative">
-      {isWeekend && <WeekendOverlay />}
+      {/* WeekendOverlay removido temporariamente */}
       
       <DashboardHeader />
       <div className="bg-black border-b border-white/5">
