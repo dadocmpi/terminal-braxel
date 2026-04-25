@@ -2,10 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { Asset, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS } from '../types/trading';
 import { analyzeWSBot, generateMockCandles } from '../data/mockData';
 import { supabase } from '../lib/supabase';
-import { fetchHistoricalData, setupRealtimeWS } from '../services/marketData';
-import { requestNotificationPermission } from '../utils/notifications';
+import { fetchHistoricalData } from '../services/marketData';
 import { showSuccess, showError } from '../utils/toast';
-import { sendToTelegram, formatTelegramSignal, formatSessionSummary } from '../services/telegram';
+import { sendToTelegram, formatTelegramSignal } from '../services/telegram';
 import { executeTrade } from '../services/broker';
 
 interface AssetData {
@@ -34,29 +33,17 @@ interface TradingContextType {
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 const TWELVE_DATA_API_KEY = '65e9481bb8634db4b208afd0af073fdb';
-
-const ALL_OPERATED_ASSETS: Asset[] = [
-  'EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 
-  'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'
-];
+const ALL_OPERATED_ASSETS: Asset[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'];
 
 const getSession = (): MarketSession => {
   const now = new Date();
   const day = now.getDay();
   if (day === 0 || day === 6) return 'CLOSE';
-
-  const nyTime = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    hour: 'numeric',
-    hour12: false
-  }).formatToParts(now);
-  
+  const nyTime = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).formatToParts(now);
   const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
-
   if (hour >= 5 && hour < 8) return 'LONDON';
   if (hour >= 8 && hour < 11) return 'NEW_YORK';
   if (hour >= 11 && hour < 14) return 'TOKYO';
-  
   return 'CLOSE';
 };
 
@@ -68,45 +55,41 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [dbSignals, setDbSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const wsRef = useRef<WebSocket | null>(null);
+  const lastExecutedSignalRef = useRef<string | null>(null);
   
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
     name: 'BRAXEL INDEX',
     candles: generateMockCandles(100, 100)
   });
 
+  // Monitoramento de Sinais e Execução Automática
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newSession = getSession();
-      const newIsWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+    if (isWeekend) return;
+
+    const processSignal = async (signal: ActiveSignal) => {
+      const signalKey = `${signal.asset}-${signal.created_at}`;
+      if (lastExecutedSignalRef.current === signalKey) return;
       
-      if (newSession !== currentSession || newIsWeekend !== isWeekend) {
-        setCurrentSession(newSession);
-        setIsWeekend(newIsWeekend);
-        setActiveAssets(SESSION_ASSETS[newSession]);
-      }
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [currentSession, isWeekend]);
-
-  useEffect(() => {
-    if (isWeekend) {
-      setIsLoading(false);
-      return;
-    }
-
-    const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: 'INSERT', table: 'signals' }, async (payload) => {
-        const newSignal = payload.new as ActiveSignal;
-        setDbSignals(prev => [newSignal, ...prev]);
-        sendToTelegram(formatTelegramSignal(newSignal));
-        
-        try {
-          const result = await executeTrade(newSignal);
-          if (result.success) showSuccess(`AUTO-TRADE: ${newSignal.asset} EXECUTADO`);
-        } catch (err) {
-          showError(`FALHA NA EXECUÇÃO: ${newSignal.asset}`);
+      lastExecutedSignalRef.current = signalKey;
+      
+      // 1. Notificar Telegram
+      sendToTelegram(formatTelegramSignal(signal));
+      
+      // 2. Executar no Broker (MetaApi)
+      try {
+        const result = await executeTrade(signal);
+        if (result.success) {
+          showSuccess(`AUTO-TRADE: ${signal.asset} EXECUTADO (Lote: ${result.lot})`);
         }
+      } catch (err) {
+        showError(`FALHA NA EXECUÇÃO: ${signal.asset}`);
+      }
+    };
+
+    // Escuta sinais do Banco de Dados (Nuvem)
+    const channel = supabase.channel('schema-db-changes')
+      .on('postgres_changes', { event: 'INSERT', table: 'signals' }, (payload) => {
+        processSignal(payload.new as ActiveSignal);
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -116,25 +99,19 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const initData = async () => {
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
-      
       for (const a of ALL_OPERATED_ASSETS) {
         let candles = isWeekend ? generateMockCandles(100, 1.1) : await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
         if (candles.length === 0) candles = generateMockCandles(100, 1.1);
-        
         const analysis = analyzeWSBot(candles, a, 'M1');
         initialData[a] = { candles, analysis, lastUpdate: Date.now() };
       }
-      
       setAllAssetsData(initialData);
       setIsLoading(false);
     };
     initData();
   }, [isWeekend]);
 
-  const currentData = allAssetsData[asset] || { 
-    candles: [], 
-    analysis: { d1Bias: 'NEUTRAL', premiumPct: 50 } 
-  };
+  const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50 } };
 
   return (
     <TradingContext.Provider value={{
