@@ -24,6 +24,7 @@ interface TradingContextType {
   currentSession: MarketSession;
   activeAssets: Asset[];
   isMarketOpen: boolean;
+  isWeekend: boolean;
   allAssetsData: Record<string, AssetData>;
   sessionIndex: { name: string; candles: Candle[] };
 }
@@ -38,11 +39,17 @@ const ALL_OPERATED_ASSETS: Asset[] = [
 ];
 
 const getSession = (): MarketSession => {
+  const now = new Date();
+  const day = now.getDay();
+  const isWeekend = day === 0 || day === 6;
+
+  if (isWeekend) return 'CLOSE';
+
   const nyTime = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
     hour: 'numeric',
     hour12: false
-  }).formatToParts(new Date());
+  }).formatToParts(now);
   
   const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
 
@@ -58,12 +65,13 @@ const getIndexName = (session: MarketSession): string => {
     case 'LONDON': return 'GBP INDEX';
     case 'NEW_YORK': return 'DXY INDEX';
     case 'TOKYO': return 'JPY STRENGTH';
-    default: return 'NASDAQ 100'; // NASDAQ quando fora de sessões Forex
+    default: return 'NASDAQ 100';
   }
 };
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentSession, setCurrentSession] = useState<MarketSession>(getSession());
+  const [isWeekend, setIsWeekend] = useState(new Date().getDay() === 0 || new Date().getDay() === 6);
   const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession]);
   const [asset, setAsset] = useState<Asset>(activeAssets[0]);
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
@@ -78,6 +86,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     const interval = setInterval(() => {
+      const now = new Date();
+      const day = now.getDay();
+      const weekend = day === 0 || day === 6;
+      setIsWeekend(weekend);
+
       const newSession = getSession();
       if (newSession !== currentSession) {
         setCurrentSession(newSession);
@@ -85,7 +98,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActiveAssets(newAssets);
         setAsset(newAssets[0]);
         
-        // Atualiza o índice e gera candles apropriados (Preço do NASDAQ é maior)
         const indexName = getIndexName(newSession);
         const basePrice = indexName === 'NASDAQ 100' ? 18250 : 104.5;
         setSessionIndex({ 
@@ -98,6 +110,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [currentSession]);
 
   useEffect(() => {
+    if (isWeekend) {
+      setIsLoading(false);
+      return;
+    }
+
     requestNotificationPermission();
     const fetchSignals = async () => {
       const { data } = await supabase
@@ -117,9 +134,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [isWeekend]);
 
   useEffect(() => {
+    if (isWeekend) return;
+
     const initData = async () => {
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
@@ -157,7 +176,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     initData();
     return () => { if (wsRef.current) wsRef.current.close(); };
-  }, []);
+  }, [isWeekend]);
 
   const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null } };
   const activeSignalFromDb = dbSignals.find(s => s.status === 'PENDING');
@@ -178,7 +197,8 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isLoading,
       currentSession,
       activeAssets,
-      isMarketOpen: currentSession !== 'CLOSE',
+      isMarketOpen: currentSession !== 'CLOSE' && !isWeekend,
+      isWeekend,
       allAssetsData,
       sessionIndex
     }}>
