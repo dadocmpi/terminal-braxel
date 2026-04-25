@@ -3,8 +3,9 @@ import { Asset, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession,
 import { analyzeWSBot, generateMockCandles } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { fetchHistoricalData, setupRealtimeWS } from '../services/marketData';
-import { requestNotificationPermission, sendSignalNotification } from '../utils/notifications';
+import { requestNotificationPermission } from '../utils/notifications';
 import { showSuccess } from '../utils/toast';
+import { sendToTelegram, formatTelegramSignal, formatSessionSummary } from '../services/telegram';
 
 interface AssetData {
   candles: Candle[];
@@ -53,7 +54,6 @@ const getSession = (): MarketSession => {
   
   const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
 
-  // Novos horários baseados na solicitação (NY Time)
   if (hour >= 5 && hour < 8) return 'LONDON';
   if (hour >= 8 && hour < 11) return 'NEW_YORK';
   if (hour >= 11 && hour < 14) return 'TOKYO';
@@ -85,13 +85,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     candles: generateMockCandles(100, currentSession === 'CLOSE' ? 18000 : 104.5)
   });
 
+  // Monitor de Sessão e Bias
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date();
-      const day = now.getDay();
-      const weekend = day === 0 || day === 6;
-      setIsWeekend(weekend);
-
       const newSession = getSession();
       if (newSession !== currentSession) {
         setCurrentSession(newSession);
@@ -99,17 +95,21 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActiveAssets(newAssets);
         setAsset(newAssets[0]);
         
+        // Notificar Telegram sobre nova sessão
+        const msg = formatSessionSummary(newSession, "ANALYZING FLOW", 0);
+        sendToTelegram(msg);
+        
         const indexName = getIndexName(newSession);
-        const basePrice = indexName === 'NASDAQ 100' ? 18250 : 104.5;
         setSessionIndex({ 
           name: indexName, 
-          candles: generateMockCandles(100, basePrice) 
+          candles: generateMockCandles(100, indexName === 'NASDAQ 100' ? 18250 : 104.5) 
         });
       }
     }, 60000);
     return () => clearInterval(interval);
   }, [currentSession]);
 
+  // Monitor de Sinais Cloud (Supabase)
   useEffect(() => {
     if (isWeekend) {
       setIsLoading(false);
@@ -117,21 +117,16 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     requestNotificationPermission();
-    const fetchSignals = async () => {
-      const { data } = await supabase
-        .from('signals')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (data) setDbSignals(data);
-    };
-    fetchSignals();
-
+    
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: 'INSERT', table: 'signals' }, (payload) => {
         setDbSignals(prev => [payload.new, ...prev]);
-        sendSignalNotification(payload.new.asset, payload.new.direction, payload.new.entry);
-        showSuccess(`🚨 NOVO SINAL CLOUD: ${payload.new.asset} ${payload.new.direction}`);
+        
+        // Notificar Telegram Automaticamente
+        const msg = formatTelegramSignal(payload.new as ActiveSignal);
+        sendToTelegram(msg);
+        
+        showSuccess(`🚨 NOVO SINAL ENVIADO AO TELEGRAM: ${payload.new.asset}`);
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
