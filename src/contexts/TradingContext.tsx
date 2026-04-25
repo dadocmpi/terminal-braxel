@@ -4,8 +4,9 @@ import { analyzeWSBot, generateMockCandles } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { fetchHistoricalData, setupRealtimeWS } from '../services/marketData';
 import { requestNotificationPermission } from '../utils/notifications';
-import { showSuccess } from '../utils/toast';
+import { showSuccess, showError } from '../utils/toast';
 import { sendToTelegram, formatTelegramSignal, formatSessionSummary } from '../services/telegram';
+import { executeTrade } from '../services/broker';
 
 interface AssetData {
   candles: Candle[];
@@ -95,7 +96,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActiveAssets(newAssets);
         setAsset(newAssets[0]);
         
-        // Notificar Telegram sobre nova sessão
         const msg = formatSessionSummary(newSession, "ANALYZING FLOW", 0);
         sendToTelegram(msg);
         
@@ -109,7 +109,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => clearInterval(interval);
   }, [currentSession]);
 
-  // Monitor de Sinais Cloud (Supabase)
+  // Monitor de Sinais Cloud (Supabase) + EXECUÇÃO AUTOMÁTICA
   useEffect(() => {
     if (isWeekend) {
       setIsLoading(false);
@@ -119,14 +119,24 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     requestNotificationPermission();
     
     const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: 'INSERT', table: 'signals' }, (payload) => {
-        setDbSignals(prev => [payload.new, ...prev]);
+      .on('postgres_changes', { event: 'INSERT', table: 'signals' }, async (payload) => {
+        const newSignal = payload.new as ActiveSignal;
+        setDbSignals(prev => [newSignal, ...prev]);
         
-        // Notificar Telegram Automaticamente
-        const msg = formatTelegramSignal(payload.new as ActiveSignal);
+        // 1. Notificar Telegram
+        const msg = formatTelegramSignal(newSignal);
         sendToTelegram(msg);
         
-        showSuccess(`🚨 NOVO SINAL ENVIADO AO TELEGRAM: ${payload.new.asset}`);
+        // 2. EXECUTAR TRADE AUTOMATICAMENTE
+        try {
+          const result = await executeTrade(newSignal);
+          if (result.success) {
+            showSuccess(`🚀 AUTO-TRADE EXECUTADO: ${newSignal.asset} (ID: ${result.orderId})`);
+          }
+        } catch (err) {
+          showError(`❌ FALHA NA EXECUÇÃO AUTOMÁTICA: ${newSignal.asset}`);
+        }
+        
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
