@@ -1,18 +1,16 @@
 import { Asset, Timeframe, Candle, BiasDirection, ActiveSignal } from '../types/trading';
 
-// Algoritmo de Movimento Browniano Geométrico com Tendência (Mais realista)
+// Algoritmo de Movimento Browniano Geométrico com Tendência
 export const generateMockCandles = (count: number, basePrice: number): Candle[] => {
   const candles: Candle[] = [];
   let currentPrice = basePrice;
   const now = Math.floor(Date.now() / 1000);
   const interval = 60;
   
-  // Tendência aleatória para o lote de candles (Bullish ou Bearish)
   let trend = (Math.random() - 0.5) * 0.0001; 
   let volatility = basePrice * 0.0008;
 
   for (let i = 0; i < count; i++) {
-    // Adiciona "ruído" de mercado e tendência
     const change = (trend * currentPrice) + (Math.random() - 0.5) * volatility;
     const open = currentPrice;
     const close = currentPrice + change;
@@ -28,25 +26,9 @@ export const generateMockCandles = (count: number, basePrice: number): Candle[] 
       volume: 1000 + Math.random() * 5000
     });
     currentPrice = close;
-    
-    // Muda a tendência levemente a cada 20 candles
     if (i % 20 === 0) trend = (Math.random() - 0.5) * 0.0002;
   }
   return candles;
-};
-
-export const generateNextCandle = (lastCandle: Candle, intervalSeconds: number = 1): Candle => {
-  const volatility = lastCandle.close * 0.0001;
-  const change = (Math.random() - 0.5) * volatility;
-  const close = lastCandle.close + change;
-  return {
-    time: (lastCandle.time as number) + intervalSeconds,
-    open: lastCandle.close,
-    high: Math.max(lastCandle.close, close) + Math.random() * (volatility * 0.2),
-    low: Math.min(lastCandle.close, close) - Math.random() * (volatility * 0.2),
-    close: close,
-    volume: 100 + Math.random() * 500
-  };
 };
 
 const isKillZone = () => {
@@ -56,6 +38,7 @@ const isKillZone = () => {
     hour12: false
   }).format(new Date());
   const hour = parseInt(nyTime);
+  // London: 3-5 AM NY | NY: 8-10 AM NY
   return (hour >= 3 && hour <= 5) || (hour >= 8 && hour <= 10);
 };
 
@@ -63,37 +46,45 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
   if (candles.length < 50) return { obs: [], fvgs: [], structure: [], d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null };
 
   const lastCandle = candles[candles.length - 1];
-  const prevCandles = candles.slice(-30, -1);
+  const prevCandles = candles.slice(-50, -1);
   
-  const highestPrev = Math.max(...prevCandles.map(c => c.high));
-  const lowestPrev = Math.min(...prevCandles.map(c => c.low));
-  const sweptHigh = lastCandle.high > highestPrev;
-  const sweptLow = lastCandle.low < lowestPrev;
+  // 1. Identificar PDH e PDL (Máximas e Mínimas Relevantes)
+  const pdh = Math.max(...prevCandles.map(c => c.high));
+  const pdl = Math.min(...prevCandles.map(c => c.low));
 
-  const isMSS_Bull = lastCandle.close > highestPrev && candles[candles.length - 2].close <= highestPrev;
-  const isMSS_Bear = lastCandle.close < lowestPrev && candles[candles.length - 2].close >= lowestPrev;
+  // 2. Detectar Liquidity Sweep (Caça de Stop)
+  const sweptHigh = lastCandle.high > pdh;
+  const sweptLow = lastCandle.low < pdl;
 
+  // 3. Detectar FVG (Fair Value Gap) - O "Imbalance" institucional
+  const hasFVG_Bull = candles[candles.length-3].high < candles[candles.length-1].low;
+  const hasFVG_Bear = candles[candles.length-3].low > candles[candles.length-1].high;
+
+  // 4. Market Structure Shift (MSS)
+  const isMSS_Bull = lastCandle.close > pdh && candles[candles.length - 2].close <= pdh;
+  const isMSS_Bear = lastCandle.close < pdl && candles[candles.length - 2].close >= pdl;
+
+  // 5. HTF Bias (Média Móvel de Longo Prazo simulada)
   const longMA = candles.reduce((a, b) => a + b.close, 0) / candles.length;
   const htfBias: BiasDirection = lastCandle.close > longMA ? 'BUY' : 'SELL';
 
   const inKillZone = isKillZone();
-
-  const high = Math.max(...candles.map(c => c.high));
-  const low = Math.min(...candles.map(c => c.low));
-  const premiumPct = ((lastCandle.close - low) / (high - low)) * 100;
+  const premiumPct = ((lastCandle.close - pdl) / (pdh - pdl)) * 100;
 
   let activeSignal: ActiveSignal | null = null;
 
-  const canBuy = inKillZone && htfBias === 'BUY' && sweptLow && isMSS_Bull && premiumPct < 40;
-  const canSell = inKillZone && htfBias === 'SELL' && sweptHigh && isMSS_Bear && premiumPct > 60;
+  // ESTRATÉGIA COMPLETA: Killzone + Bias + Sweep + MSS + FVG
+  const canBuy = inKillZone && htfBias === 'BUY' && sweptLow && isMSS_Bull && hasFVG_Bull && premiumPct < 40;
+  const canSell = inKillZone && htfBias === 'SELL' && sweptHigh && isMSS_Bear && hasFVG_Bear && premiumPct > 60;
 
   if (canBuy || canSell) {
     const direction = canBuy ? 'BUY' : 'SELL';
     const entry = lastCandle.close;
-    const range = highestPrev - lowestPrev;
-    const sl_dist = range * 0.2;
+    const range = pdh - pdl;
+    const sl_dist = range * 0.15; // SL mais curto e técnico
+    
     const sl = direction === 'BUY' ? entry - sl_dist : entry + sl_dist;
-    const tp1 = direction === 'BUY' ? entry + (sl_dist * 2.5) : entry - (sl_dist * 2.5);
+    const tp1 = direction === 'BUY' ? entry + (sl_dist * 2) : entry - (sl_dist * 2);
     
     const multiplier = asset.includes('JPY') ? 100 : 10000;
     const sl_pips = Math.abs(entry - sl) * multiplier;
@@ -104,17 +95,14 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
       entry,
       sl,
       tp1,
-      tp2: direction === 'BUY' ? entry + (sl_dist * 4) : entry - (sl_dist * 4),
+      tp2: direction === 'BUY' ? entry + (sl_dist * 3.5) : entry - (sl_dist * 3.5),
       sl_pips,
-      tp1_pips: sl_pips * 2.5,
-      tp2_pips: sl_pips * 4,
-      rr: 2.5,
-      confidence: 94,
-      type_code: 'A',
-      lot_size: parseFloat((10 / (sl_pips * 10)).toFixed(2)),
-      gate: { stop_hunt: true, choch: true, of_aligned: true, pillars_count: 4 },
-      manipulation: { stop_hunt: true, stop_hunt_pips: sl_pips * 0.3, wyckoff_pattern: 'MSS CONFIRMED', fixing_window: 'KILL ZONE', score_bonus: 20 },
-      checklist: { d1_aligned: true, htf_aligned: true, zone_touched: true, of_confirmed: true, m1_candle: true, premium_ok: true }
+      tp1_pips: sl_pips * 2,
+      tp2_pips: sl_pips * 3.5,
+      rr: 2.0,
+      confidence: 96, // Aumentado devido às novas confluências
+      status: 'PENDING',
+      created_at: new Date().toISOString()
     };
   }
 
