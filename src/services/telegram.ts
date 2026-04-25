@@ -1,11 +1,10 @@
 import { ActiveSignal, MarketSession } from '../types/trading';
 
-// Substitua os valores abaixo pelas suas credenciais ou use variáveis de ambiente
-const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || ''; 
-const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || '';
+// Credenciais configuradas conforme fornecido pelo usuário
+const TELEGRAM_BOT_TOKEN = '8597174703:AAGGVKCNBxL-5UCk1ZB52r1o0p6t7HbGle8'; 
+const TELEGRAM_CHAT_ID = '7182172126';
 
 export const formatTelegramSignal = (signal: ActiveSignal) => {
-  const emoji = signal.direction === 'BUY' ? '🔵' : '🔴';
   const trend = signal.direction === 'BUY' ? 'BULLISH' : 'BEARISH';
   
   // Escapando caracteres especiais para o MarkdownV2 do Telegram
@@ -36,11 +35,12 @@ export const formatTelegramSignal = (signal: ActiveSignal) => {
 export const formatSessionSummary = (session: MarketSession, bias: string, pips: number) => {
   const pipsFormatted = pips.toFixed(1).replace('.', '\\.').replace('-', '\\-');
   const sign = pips >= 0 ? '\\+' : '';
+  const sessionEscaped = session.replace('_', '\\_');
 
   return `
 🌍 *BRAXEL \- SESSION UPDATE* 🌍
 ━━━━━━━━━━━━━━━━━━━━━━━━
-🕒 *SESSION:* ${session} KILLZONE
+🕒 *SESSION:* ${sessionEscaped} KILLZONE
 📊 *BIAS:* ${bias}
 💰 *DAILY PIPS:* ${sign}${pipsFormatted}
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -50,10 +50,7 @@ export const formatSessionSummary = (session: MarketSession, bias: string, pips:
 };
 
 export const sendToTelegram = async (message: string) => {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.log("Telegram credentials missing. Message preview:\n", message);
-    return false;
-  }
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return false;
 
   try {
     const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -65,11 +62,6 @@ export const sendToTelegram = async (message: string) => {
         parse_mode: 'MarkdownV2'
       })
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Telegram API Error:", errorData);
-    }
     
     return response.ok;
   } catch (error) {
