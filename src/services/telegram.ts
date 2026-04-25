@@ -1,26 +1,31 @@
 import { ActiveSignal, MarketSession } from '../types/trading';
 
-// Credenciais configuradas conforme fornecido pelo usuário
 const TELEGRAM_BOT_TOKEN = '8597174703:AAGGVKCNBxL-5UCk1ZB52r1o0p6t7HbGle8'; 
 const TELEGRAM_CHAT_ID = '7182172126';
+
+// Função auxiliar para escapar TODOS os caracteres especiais exigidos pelo MarkdownV2
+const escapeMarkdown = (text: string | number) => {
+  const str = String(text);
+  return str.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+};
 
 export const formatTelegramSignal = (signal: ActiveSignal) => {
   const trend = signal.direction === 'BUY' ? 'BULLISH' : 'BEARISH';
   
-  // Escapando caracteres especiais para o MarkdownV2 do Telegram
-  const asset = signal.asset.replace('-', '\\-');
-  const entry = signal.entry.toFixed(5).replace('.', '\\.');
-  const sl = signal.sl.toFixed(5).replace('.', '\\.');
-  const tp1 = signal.tp1.toFixed(5).replace('.', '\\.');
-  const tp2 = signal.tp2.toFixed(5).replace('.', '\\.');
-  const slPips = signal.sl_pips.toFixed(1).replace('.', '\\.');
+  const asset = escapeMarkdown(signal.asset);
+  const entry = escapeMarkdown(signal.entry.toFixed(5));
+  const sl = escapeMarkdown(signal.sl.toFixed(5));
+  const tp1 = escapeMarkdown(signal.tp1.toFixed(5));
+  const tp2 = escapeMarkdown(signal.tp2.toFixed(5));
+  const slPips = escapeMarkdown(signal.sl_pips.toFixed(1));
+  const confidence = escapeMarkdown(signal.confidence);
 
   return `
 🚀 *BRAXEL TERMINAL \- NEW SIGNAL* 🚀
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📈 *ASSET:* ${asset}
 ⚡ *TYPE:* ${trend} EXECUTION
-🎯 *CONFIDENCE:* ${signal.confidence}%
+🎯 *CONFIDENCE:* ${confidence}%
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📍 *ENTRY:* \`${entry}\`
 🛑 *STOP LOSS:* \`${sl}\` \(\-${slPips} pips\)
@@ -33,15 +38,16 @@ export const formatTelegramSignal = (signal: ActiveSignal) => {
 };
 
 export const formatSessionSummary = (session: MarketSession, bias: string, pips: number) => {
-  const pipsFormatted = pips.toFixed(1).replace('.', '\\.').replace('-', '\\-');
+  const pipsFormatted = escapeMarkdown(pips.toFixed(1));
   const sign = pips >= 0 ? '\\+' : '';
-  const sessionEscaped = session.replace('_', '\\_');
+  const sessionEscaped = escapeMarkdown(session);
+  const biasEscaped = escapeMarkdown(bias);
 
   return `
 🌍 *BRAXEL \- SESSION UPDATE* 🌍
 ━━━━━━━━━━━━━━━━━━━━━━━━
 🕒 *SESSION:* ${sessionEscaped} KILLZONE
-📊 *BIAS:* ${bias}
+📊 *BIAS:* ${biasEscaped}
 💰 *DAILY PIPS:* ${sign}${pipsFormatted}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📡 *Monitoring 8 Institutional Pairs*
@@ -63,9 +69,15 @@ export const sendToTelegram = async (message: string) => {
       })
     });
     
-    return response.ok;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Telegram API Error:", errorData);
+      return false;
+    }
+    
+    return true;
   } catch (error) {
-    console.error("Error sending to Telegram:", error);
+    console.error("Network Error sending to Telegram:", error);
     return false;
   }
 };
