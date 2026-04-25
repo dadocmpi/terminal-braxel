@@ -3,13 +3,6 @@ export type Timeframe = 'D1' | 'H4' | 'H1' | 'M15' | 'M5' | 'M1';
 export type BiasDirection = 'BUY' | 'SELL' | 'NEUTRAL';
 export type MarketSession = 'LONDON' | 'NEW_YORK' | 'TOKYO' | 'CLOSE';
 
-export const SESSION_ASSETS: Record<MarketSession, Asset[]> = {
-  LONDON: ['GBPUSD', 'EURUSD', 'GBPJPY'],
-  NEW_YORK: ['EURUSD', 'GBPUSD', 'USDCAD'],
-  TOKYO: ['USDJPY', 'GBPJPY', 'AUDUSD'],
-  CLOSE: ['EURUSD', 'GBPUSD', 'USDCAD']
-};
-
 export interface Candle {
   time: number;
   open: number;
@@ -19,9 +12,12 @@ export interface Candle {
   volume: number;
 }
 
+export type SignalType = 'A' | 'B' | 'C';
+
 export interface ActiveSignal {
   asset: Asset;
   direction: 'BUY' | 'SELL';
+  type: SignalType;
   entry: number;
   sl: number;
   tp1: number;
@@ -32,6 +28,7 @@ export interface ActiveSignal {
   rr: number;
   confidence: number;
   status: 'PENDING' | 'WIN' | 'LOSS';
+  confluences: string[];
   created_at: string;
 }
 
