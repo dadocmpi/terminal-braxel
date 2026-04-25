@@ -6,7 +6,7 @@ import { RiskCalculator } from './RiskCalculator';
 import { ShieldCheck, Activity, Send } from 'lucide-react';
 import { useTrading } from '../contexts/TradingContext';
 import { formatSessionSummary, sendToTelegram } from '../services/telegram';
-import { showSuccess } from '../utils/toast';
+import { showSuccess, showError } from '../utils/toast';
 
 export const DashboardHeader = () => {
   const location = useLocation();
@@ -18,9 +18,13 @@ export const DashboardHeader = () => {
     const totalPips = signalsData.signals.reduce((acc, s) => acc + s.pips, 0);
     const msg = formatSessionSummary(currentSession, d1Bias, totalPips);
     
-    // Como não temos o Token ainda, ele vai apenas dar log no console
-    await sendToTelegram(msg);
-    showSuccess("Telegram Summary generated in Console (Token required for live)");
+    const success = await sendToTelegram(msg);
+    
+    if (success) {
+      showSuccess("Relatório enviado com sucesso para o Telegram!");
+    } else {
+      showError("Erro ao enviar para o Telegram. Verifique o console.");
+    }
   };
 
   return (
