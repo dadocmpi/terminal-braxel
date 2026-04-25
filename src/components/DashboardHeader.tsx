@@ -47,11 +47,6 @@ export const DashboardHeader = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1 bg-bull/10 border border-bull/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
-            <span className="text-[8px] font-black text-bull uppercase tracking-widest">Telegram Bot: Active</span>
-          </div>
-          <div className="h-6 w-[1px] bg-white/10 mx-2" />
           {isTerminal1 && <RiskCalculator />}
         </div>
       </header>
