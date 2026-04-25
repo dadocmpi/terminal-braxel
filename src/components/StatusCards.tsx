@@ -19,7 +19,7 @@ export const StatusCards = () => {
       return { label: "EQUILIBRIUM", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
     }
     
-    return { label: "MARKET ANALYSIS", color: "text-primary", icon: <Activity className="w-4 h-4" /> };
+    return { label: "", color: "text-primary", icon: null };
   };
 
   const condition = getMarketCondition();
@@ -46,10 +46,12 @@ export const StatusCards = () => {
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-4">
             <span className="text-[10px] text-white/70 uppercase tracking-[0.3em] font-black">P/D MATRIX</span>
-            <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-widest ${condition.color}`}>
-              {condition.icon}
-              {condition.label}
-            </div>
+            {condition.label && (
+              <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-widest ${condition.color}`}>
+                {condition.icon}
+                {condition.label}
+              </div>
+            )}
           </div>
           <span className="text-lg font-mono font-black text-primary/90">{premiumPct.toFixed(1)}%</span>
         </div>
