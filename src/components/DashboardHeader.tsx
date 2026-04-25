@@ -3,12 +3,25 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { RiskCalculator } from './RiskCalculator';
-import { ShieldCheck, Activity } from 'lucide-react';
+import { ShieldCheck, Activity, Send } from 'lucide-react';
+import { useTrading } from '../contexts/TradingContext';
+import { formatSessionSummary, sendToTelegram } from '../services/telegram';
+import { showSuccess } from '../utils/toast';
 
 export const DashboardHeader = () => {
   const location = useLocation();
+  const { currentSession, d1Bias, signalsData } = useTrading();
   const isTerminal1 = location.pathname === '/';
   const isTerminal2 = location.pathname === '/analytics';
+
+  const handleTelegramTest = async () => {
+    const totalPips = signalsData.signals.reduce((acc, s) => acc + s.pips, 0);
+    const msg = formatSessionSummary(currentSession, d1Bias, totalPips);
+    
+    // Como não temos o Token ainda, ele vai apenas dar log no console
+    await sendToTelegram(msg);
+    showSuccess("Telegram Summary generated in Console (Token required for live)");
+  };
 
   return (
     <div className="sticky top-0 z-50 w-full bg-black border-b border-white/10">
@@ -47,6 +60,13 @@ export const DashboardHeader = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <button 
+            onClick={handleTelegramTest}
+            className="p-2 text-muted-foreground hover:text-primary transition-colors"
+            title="Send Telegram Summary"
+          >
+            <Send className="w-4 h-4" />
+          </button>
           <div className="h-6 w-[1px] bg-white/10 mx-2" />
           {isTerminal1 && <RiskCalculator />}
         </div>
