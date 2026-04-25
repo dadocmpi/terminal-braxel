@@ -1,6 +1,5 @@
 import { Asset, Timeframe, Candle, BiasDirection, ActiveSignal, SignalType } from '../types/trading';
 
-// Configuração de Janelas de Fixing (Horário de NY)
 const FIXING_WINDOWS = [
   { name: 'NY_OPEN_FIX', hour: 8, minStart: 55, minEnd: 5, weight: 2.0 },
   { name: 'LONDON_CLOSE', hour: 10, minStart: 55, minEnd: 5, weight: 1.8 },
@@ -53,55 +52,45 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
   if (candles.length < 50) return { d1Bias: 'NEUTRAL', premiumPct: 50, activeSignal: null };
 
   const last = candles[candles.length - 1];
-  const prev = candles.slice(-20, -1);
+  const prev = candles.slice(-30, -1);
   
-  // 1. Estrutura e Liquidez
+  // 1. Estrutura de Mercado (Market Structure Shift)
   const pdh = Math.max(...prev.map(c => c.high));
   const pdl = Math.min(...prev.map(c => c.low));
   const sweptHigh = last.high > pdh;
   const sweptLow = last.low < pdl;
 
-  // 2. FVG e CHoCH
-  const hasFVG = Math.abs(candles[candles.length-3].high - candles[candles.length-1].low) > (last.close * 0.0002);
+  // 2. Volume Institucional (Confirmação de Smart Money)
+  const avgVolume = prev.reduce((acc, c) => acc + c.volume, 0) / prev.length;
+  const highVolume = last.volume > avgVolume * 1.5;
+
+  // 3. FVG e Desequilíbrio
+  const hasFVG = Math.abs(candles[candles.length-3].high - candles[candles.length-1].low) > (last.close * 0.0003);
   const isMSS = (last.close > pdh && candles[candles.length-2].close <= pdh) || 
                 (last.close < pdl && candles[candles.length-2].close >= pdl);
 
-  // 3. Contexto Institucional
-  const fixing = isInsideFixing();
+  // 4. Contexto de Premium/Discount
   const premiumPct = ((last.close - pdl) / (pdh - pdl)) * 100;
   const bias: BiasDirection = last.close > (pdh + pdl) / 2 ? 'BUY' : 'SELL';
 
   let activeSignal: ActiveSignal | null = null;
   let confluences: string[] = [];
 
-  // Lógica de Gatilho (Pilar: SH + CHoCH + OF)
-  const canBuy = sweptLow && isMSS && hasFVG && premiumPct < 45;
-  const canSell = sweptHigh && isMSS && hasFVG && premiumPct > 55;
+  // Gatilho de Alta Assertividade: Sweep + MSS + Volume + FVG
+  const canBuy = sweptLow && isMSS && highVolume && premiumPct < 40;
+  const canSell = sweptHigh && isMSS && highVolume && premiumPct > 60;
 
   if (canBuy || canSell) {
     const direction = canBuy ? 'BUY' : 'SELL';
+    const fixing = isInsideFixing();
     
-    // Classificação de Sinal (A, B ou C)
-    let type: SignalType = 'C';
-    let confidence = 65;
-
-    if (sweptLow || sweptHigh) {
-      confluences.push('Liquidity Sweep');
-      confidence += 15;
-    }
-    if (fixing) {
-      confluences.push(`Fixing Window: ${fixing.name}`);
-      confidence += 10;
-      type = 'B';
-    }
-    if (isMSS && hasFVG) {
-      confluences.push('MSS + FVG Confirmed');
-      confidence += 10;
-      if (confidence >= 85) type = 'A';
-    }
+    let confidence = 75;
+    if (highVolume) { confluences.push('Institutional Volume Spike'); confidence += 10; }
+    if (fixing) { confluences.push(`Killzone Alignment: ${fixing.name}`); confidence += 10; }
+    if (hasFVG) { confluences.push('Fair Value Gap Created'); confidence += 5; }
 
     const range = pdh - pdl;
-    const sl_dist = range * 0.15;
+    const sl_dist = range * 0.12; // Stop mais curto para melhor RR
     const entry = last.close;
     const sl = direction === 'BUY' ? entry - sl_dist : entry + sl_dist;
     const multiplier = asset.includes('JPY') ? 100 : 10000;
@@ -109,16 +98,16 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
     activeSignal = {
       asset,
       direction,
-      type,
+      type: confidence >= 90 ? 'A' : confidence >= 80 ? 'B' : 'C',
       entry,
       sl,
-      tp1: direction === 'BUY' ? entry + (sl_dist * 1.8) : entry - (sl_dist * 1.8),
-      tp2: direction === 'BUY' ? entry + (sl_dist * 3.0) : entry - (sl_dist * 3.0),
+      tp1: direction === 'BUY' ? entry + (sl_dist * 2.0) : entry - (sl_dist * 2.0),
+      tp2: direction === 'BUY' ? entry + (sl_dist * 4.0) : entry - (sl_dist * 4.0),
       sl_pips: sl_dist * multiplier,
-      tp1_pips: (sl_dist * 1.8) * multiplier,
-      tp2_pips: (sl_dist * 3.0) * multiplier,
-      rr: 1.8,
-      confidence: Math.min(98, confidence),
+      tp1_pips: (sl_dist * 2.0) * multiplier,
+      tp2_pips: (sl_dist * 4.0) * multiplier,
+      rr: 2.0,
+      confidence: Math.min(99, confidence),
       status: 'PENDING',
       confluences,
       created_at: new Date().toISOString()

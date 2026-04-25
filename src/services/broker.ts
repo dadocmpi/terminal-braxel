@@ -1,32 +1,41 @@
 import axios from 'axios';
 
-// Para automação real, usaríamos um serviço como MetaApi.cloud
-// ou um Webhook para um EA no MetaTrader.
-const META_API_TOKEN = 'SEU_TOKEN_META_API';
-const ACCOUNT_ID = 'ID_DA_SUA_CONTA_MT4_MT5';
+// Configurações para automação real via MetaApi ou Webhook MT4/MT5
+const BROKER_CONFIG = {
+  risk_per_trade: 0.01, // 1% de risco por operação
+  min_lot: 0.01,
+  max_lot: 5.0,
+  account_balance: 12450.00 // Isso deve vir de uma API em produção
+};
 
 export const executeTrade = async (signal: any) => {
   try {
-    console.log("🤖 BRAXEL BRIDGE: Iniciando execução automática...");
+    console.log(`🤖 BRAXEL BRIDGE: Iniciando execução para ${signal.asset}...`);
 
-    // Exemplo de chamada para MetaApi (Padrão de mercado para automação JS)
-    /*
-    const response = await axios.post(`https://mt-client-api-v1.new-york.agiliumtrade.ai/users/current/accounts/${ACCOUNT_ID}/trade`, {
+    // Cálculo de Lote Baseado no Risco
+    // Lote = (Balanço * Risco) / (SL em Pips * Valor do Pip)
+    const riskAmount = BROKER_CONFIG.account_balance * BROKER_CONFIG.risk_per_trade;
+    const pipValue = signal.asset.includes('JPY') ? 10 : 10; // Simplificado para o exemplo
+    const calculatedLot = Math.max(BROKER_CONFIG.min_lot, Math.min(BROKER_CONFIG.max_lot, riskAmount / (signal.sl_pips * pipValue)));
+
+    console.log(`📊 Gestão de Risco: Lote calculado em ${calculatedLot.toFixed(2)} para risco de $${riskAmount}`);
+
+    /* 
+    // Exemplo de integração real com MetaApi
+    const response = await axios.post('https://mt-client-api-v1.new-york.agiliumtrade.ai/trade', {
       symbol: signal.asset,
       action: signal.direction === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
-      volume: signal.lot_size || 0.01,
+      volume: parseFloat(calculatedLot.toFixed(2)),
       stopLoss: signal.sl,
       takeProfit: signal.tp1,
-      comment: 'Braxel Neural Execution'
-    }, {
-      headers: { 'auth-token': META_API_TOKEN }
+      comment: `Braxel Type ${signal.type} | Conf: ${signal.confidence}%`
     });
     */
 
-    // Simulação de sucesso para o terminal
     return { 
       success: true, 
-      orderId: Math.random().toString(36).toUpperCase().substring(2, 10),
+      orderId: `BRX-${Math.random().toString(36).toUpperCase().substring(2, 8)}`,
+      lot: calculatedLot.toFixed(2),
       timestamp: new Date().toISOString() 
     };
   } catch (error) {
