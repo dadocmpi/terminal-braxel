@@ -1,37 +1,39 @@
 import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { useTrading } from '../contexts/TradingContext';
+import { BarChart2, Activity } from 'lucide-react';
 
 export const CandlestickChart = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
   
-  const { candles, asset, timeframe, obs, isLoading } = useTrading();
+  const { candles, asset, isLoading } = useTrading();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 450,
+      height: chartContainerRef.current.clientHeight || 500,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#94a3b8',
-        fontSize: 11,
+        fontSize: 10,
+        fontFamily: 'JetBrains Mono, monospace',
       },
       grid: {
-        vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
-        horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { labelBackgroundColor: '#1e293b' },
-        horzLine: { labelBackgroundColor: '#1e293b' },
+        vertLine: { labelBackgroundColor: '#EAB308', color: 'rgba(234, 179, 8, 0.5)' },
+        horzLine: { labelBackgroundColor: '#EAB308', color: 'rgba(234, 179, 8, 0.5)' },
       },
       rightPriceScale: {
         borderColor: 'rgba(255, 255, 255, 0.1)',
+        scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -48,22 +50,14 @@ export const CandlestickChart = () => {
       wickDownColor: '#ef4444',
     });
 
-    const emaSeries = chart.addLineSeries({
-      color: '#1AE6D5',
-      lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
-
     chartRef.current = chart;
     seriesRef.current = candlestickSeries;
-    emaRef.current = emaSeries;
 
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({ 
-          width: chartContainerRef.current.clientWidth 
+          width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight
         });
       }
     };
@@ -77,54 +71,41 @@ export const CandlestickChart = () => {
   }, []);
 
   useEffect(() => {
-    if (seriesRef.current && emaRef.current && candles.length > 0) {
-      try {
-        seriesRef.current.setData(candles as any);
-        
-        const emaData = candles.map((candle, index) => {
-          if (index < 20) return null;
-          const slice = candles.slice(index - 20, index);
-          const sum = slice.reduce((acc, c) => acc + c.close, 0);
-          return { time: candle.time, value: sum / 20 };
-        }).filter(d => d !== null);
-        
-        emaRef.current.setData(emaData as any);
-        chartRef.current?.timeScale().fitContent();
-      } catch (err) {
-        console.error("Error updating chart data:", err);
-      }
+    if (seriesRef.current && candles.length > 0) {
+      seriesRef.current.setData(candles as any);
+      chartRef.current?.timeScale().fitContent();
     }
   }, [candles]);
 
   return (
-    <div className="relative w-full h-[450px] bg-card/30 rounded-xl border border-border/50 overflow-hidden">
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-3 pointer-events-none">
-        <div className="flex flex-col">
+    <div className="relative w-full h-full bg-black flex flex-col">
+      <div className="terminal-header flex justify-between items-center border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <BarChart2 className="w-3 h-3 text-primary" />
+          <span className="tracking-[0.2em] font-black uppercase">{asset} // INSTITUTIONAL FEED</span>
+        </div>
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-black tracking-tighter">{asset}</span>
-            <span className="text-[10px] font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">{timeframe}</span>
+            <Activity className="w-3 h-3 text-bull animate-pulse" />
+            <span className="text-bull font-black text-[9px]">LIVE</span>
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-[10px] text-bull font-mono flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-bull" /> OB: {obs.filter(o => o.type === 'BUY').length}
-            </span>
-            <span className="text-[10px] text-bear font-mono flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-bear" /> OB: {obs.filter(o => o.type === 'SELL').length}
-            </span>
-          </div>
+          <span className="text-white font-mono text-xs tabular-nums">
+            {candles[candles.length-1]?.close.toFixed(asset.includes('JPY') ? 3 : 5)}
+          </span>
         </div>
       </div>
       
-      {isLoading && (
-        <div className="absolute inset-0 z-20 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-[10px] font-mono text-primary uppercase tracking-widest">Loading Market Data...</span>
+      <div className="flex-1 relative">
+        {isLoading && (
+          <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-[10px] font-mono text-primary uppercase tracking-widest">Syncing Market Data...</span>
+            </div>
           </div>
-        </div>
-      )}
-      
-      <div ref={chartContainerRef} className="w-full h-full" />
+        )}
+        <div ref={chartContainerRef} className="w-full h-full" />
+      </div>
     </div>
   );
 };
