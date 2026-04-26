@@ -47,12 +47,12 @@ const getSession = (): MarketSession => {
   return 'CLOSE';
 };
 
-const getIndexName = (session: MarketSession): string => {
+const getIndexConfig = (session: MarketSession) => {
   switch (session) {
-    case 'LONDON': return 'FTSE 100 INDEX';
-    case 'NEW_YORK': return 'NASDAQ 100';
-    case 'TOKYO': return 'NIKKEI 225';
-    default: return 'NASDAQ 100'; // Default fora de sessão
+    case 'LONDON': return { name: 'GBP INDEX (BXY)', price: 125.50 };
+    case 'NEW_YORK': return { name: 'US DOLLAR INDEX (DXY)', price: 104.20 };
+    case 'TOKYO': return { name: 'YEN INDEX (JXY)', price: 72.80 };
+    default: return { name: 'NASDAQ 100 (NAS100)', price: 18250.00 };
   }
 };
 
@@ -66,9 +66,10 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(true);
   const lastExecutedSignalRef = useRef<string | null>(null);
   
+  const config = getIndexConfig(currentSession);
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
-    name: getIndexName(currentSession),
-    candles: generateMockCandles(100, currentSession === 'TOKYO' ? 38000 : currentSession === 'LONDON' ? 8000 : 18000)
+    name: config.name,
+    candles: generateMockCandles(100, config.price)
   });
 
   useEffect(() => {
@@ -76,9 +77,10 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const newSession = getSession();
       if (newSession !== currentSession) {
         setCurrentSession(newSession);
+        const newConfig = getIndexConfig(newSession);
         setSessionIndex({
-          name: getIndexName(newSession),
-          candles: generateMockCandles(100, newSession === 'TOKYO' ? 38000 : newSession === 'LONDON' ? 8000 : 18000)
+          name: newConfig.name,
+          candles: generateMockCandles(100, newConfig.price)
         });
       }
     }, 60000);
