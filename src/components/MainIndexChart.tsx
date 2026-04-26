@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType, ISeriesApi, CrosshairMode } from 'lightweight-charts';
 import { useTrading } from '../contexts/TradingContext';
-import { Activity, Zap, Lock } from 'lucide-react';
+import { Activity, Zap, Lock, AlertCircle } from 'lucide-react';
 
 export const MainIndexChart = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const seriesRef = useRef<ISeriesApi<"Area"> | null>(null);
   const chartRef = useRef<any>(null);
-  const { sessionIndex, isMarketOpen } = useTrading();
+  const { sessionIndex, isMarketOpen, isLoading } = useTrading();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -79,52 +79,47 @@ export const MainIndexChart = () => {
     }
   }, [sessionIndex]);
 
-  const lastPrice = sessionIndex.candles[sessionIndex.candles.length - 1]?.close || 0;
+  const hasData = sessionIndex.candles.length > 0;
+  const lastPrice = hasData ? sessionIndex.candles[sessionIndex.candles.length - 1].close : 0;
 
   return (
     <div className="bg-black border border-white/10 h-full flex flex-col relative overflow-hidden">
       <div className="terminal-header flex justify-between items-center border-b border-white/5">
         <div className="flex items-center gap-2">
           <Activity className={`w-3 h-3 ${isMarketOpen ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className="tracking-[0.2em] font-black uppercase">{sessionIndex.name} // {isMarketOpen ? '10S FEED' : 'OFFLINE'}</span>
+          <span className="tracking-[0.2em] font-black uppercase">{sessionIndex.name} // {isMarketOpen ? 'LIVE' : 'OFFLINE'}</span>
         </div>
         <div className="flex items-center gap-4">
-          {isMarketOpen ? (
-            <div className="flex items-center gap-2">
-              <Zap className="w-3 h-3 text-primary animate-pulse" />
-              <span className="text-primary font-black text-[9px]">HIGH FREQUENCY</span>
-            </div>
-          ) : (
+          {!isMarketOpen && (
             <div className="flex items-center gap-2">
               <Lock className="w-3 h-3 text-muted-foreground" />
               <span className="text-muted-foreground font-black text-[9px]">MARKET CLOSED</span>
             </div>
           )}
           <span className={`font-mono text-xs tabular-nums font-bold ${isMarketOpen ? 'text-white' : 'text-muted-foreground'}`}>
-            {lastPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {hasData ? lastPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---'}
           </span>
         </div>
       </div>
       
       <div className="flex-1 w-full h-full relative">
-        {!isMarketOpen && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+        {!hasData && !isLoading && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60">
+            <AlertCircle className="w-8 h-8 text-muted-foreground/20 mb-2" />
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">No Real-Time Data Available</span>
+            <span className="text-[8px] text-muted-foreground/50 mt-1">Check API Connection or Market Hours</span>
+          </div>
+        )}
+        
+        {!isMarketOpen && hasData && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 pointer-events-none">
             <div className="px-4 py-2 border border-white/10 bg-black/80 flex items-center gap-3">
               <Lock className="w-4 h-4 text-primary" />
-              <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Institutional Data Paused (Weekend)</span>
+              <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Static Historical View</span>
             </div>
           </div>
         )}
         <div ref={chartContainerRef} className="w-full h-full" />
-      </div>
-      
-      <div className="absolute bottom-4 left-4 z-10 flex gap-2">
-        <div className="px-2 py-1 bg-black/80 border border-white/10 text-[8px] font-black text-muted-foreground uppercase tracking-widest">
-          Interval: 10s
-        </div>
-        <div className={`px-2 py-1 bg-black/80 border border-white/10 text-[8px] font-black uppercase tracking-widest ${isMarketOpen ? 'text-bull' : 'text-muted-foreground'}`}>
-          Status: {isMarketOpen ? 'Live' : 'Offline'}
-        </div>
       </div>
     </div>
   );

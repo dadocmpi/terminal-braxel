@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Asset, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS } from '../types/trading';
-import { analyzeWSBot, generateMockCandles } from '../data/mockData';
-import { supabase } from '../lib/supabase';
+import { analyzeWSBot } from '../data/mockData';
 import { fetchHistoricalData } from '../services/marketData';
-import { showSuccess, showError } from '../utils/toast';
-import { executeTrade } from '../services/broker';
 
 interface AssetData {
   candles: Candle[];
@@ -48,10 +45,10 @@ const getSession = (): MarketSession => {
 
 const getIndexConfig = (session: MarketSession) => {
   switch (session) {
-    case 'LONDON': return { name: 'GBP INDEX (BXY)', symbol: 'BXY', fallbackPrice: 125.50 };
-    case 'NEW_YORK': return { name: 'US DOLLAR INDEX (DXY)', symbol: 'DXY', fallbackPrice: 104.20 };
-    case 'TOKYO': return { name: 'YEN INDEX (JXY)', symbol: 'JXY', fallbackPrice: 72.80 };
-    default: return { name: 'NASDAQ 100 (NDX)', symbol: 'NDX', fallbackPrice: 27303.67 };
+    case 'LONDON': return { name: 'GBP INDEX', symbol: 'GBP/USD', fallbackPrice: 1.26 }; // Usando par real como proxy para o index se o index puro falhar
+    case 'NEW_YORK': return { name: 'US DOLLAR INDEX', symbol: 'DXY', fallbackPrice: 104.00 };
+    case 'TOKYO': return { name: 'YEN INDEX', symbol: 'USD/JPY', fallbackPrice: 150.00 };
+    default: return { name: 'NASDAQ 100', symbol: 'QQQ', fallbackPrice: 440.00 };
   }
 };
 
@@ -72,58 +69,37 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const isMarketOpen = !isWeekend && currentSession !== 'CLOSE';
 
-  // Efeito para o Índice - APENAS SE O MERCADO ESTIVER ABERTO
+  // Carregamento do Índice - APENAS DADOS REAIS
   useEffect(() => {
     const config = getIndexConfig(currentSession);
     
-    const loadInitialIndex = async () => {
-      // Tenta buscar dados reais históricos mesmo no fds para mostrar o último estado
-      let candles = await fetchHistoricalData(config.symbol, '5min', TWELVE_DATA_API_KEY);
-      if (candles.length === 0) {
-        candles = generateMockCandles(150, config.fallbackPrice);
+    const loadIndexData = async () => {
+      const candles = await fetchHistoricalData(config.symbol, '5min', TWELVE_DATA_API_KEY);
+      if (candles && candles.length > 0) {
+        setSessionIndex({ name: config.name, symbol: config.symbol, candles });
+      } else {
+        console.warn(`Não foi possível carregar dados reais para ${config.symbol}`);
+        setSessionIndex(prev => ({ ...prev, candles: [] }));
       }
-      setSessionIndex({ name: config.name, symbol: config.symbol, candles });
     };
 
-    loadInitialIndex();
+    loadIndexData();
+  }, [currentSession]);
 
-    if (!isMarketOpen) return; // Para aqui se for final de semana
-
-    const interval = setInterval(() => {
-      setSessionIndex(prev => {
-        const lastCandle = prev.candles[prev.candles.length - 1];
-        const volatility = config.fallbackPrice * 0.0002;
-        const newClose = lastCandle.close + (Math.random() - 0.5) * volatility;
-        
-        const newCandle: Candle = {
-          time: lastCandle.time + 10,
-          open: lastCandle.close,
-          high: Math.max(lastCandle.close, newClose) + Math.random() * (volatility * 0.2),
-          low: Math.min(lastCandle.close, newClose) - Math.random() * (volatility * 0.2),
-          close: newClose,
-          volume: Math.random() * 5000
-        };
-
-        return {
-          ...prev,
-          candles: [...prev.candles.slice(1), newCandle]
-        };
-      });
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [currentSession, isMarketOpen]);
-
+  // Carregamento dos Pares - APENAS DADOS REAIS
   useEffect(() => {
     const initData = async () => {
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
+      
       for (const a of ALL_OPERATED_ASSETS) {
-        let candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
-        if (candles.length === 0) candles = generateMockCandles(100, 1.1);
-        const analysis = analyzeWSBot(candles, a, 'M1');
-        initialData[a] = { candles, analysis, lastUpdate: Date.now() };
+        const candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
+        if (candles && candles.length > 0) {
+          const analysis = analyzeWSBot(candles, a, 'M1');
+          initialData[a] = { candles, analysis, lastUpdate: Date.now() };
+        }
       }
+      
       setAllAssetsData(initialData);
       setIsLoading(false);
     };
