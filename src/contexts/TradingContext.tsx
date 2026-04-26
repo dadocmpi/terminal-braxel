@@ -51,7 +51,7 @@ const getIndexConfig = (session: MarketSession) => {
     case 'LONDON': return { name: 'GBP INDEX (BXY)', symbol: 'BXY', fallbackPrice: 125.50 };
     case 'NEW_YORK': return { name: 'US DOLLAR INDEX (DXY)', symbol: 'DXY', fallbackPrice: 104.20 };
     case 'TOKYO': return { name: 'YEN INDEX (JXY)', symbol: 'JXY', fallbackPrice: 72.80 };
-    default: return { name: 'NASDAQ 100 (NAS100)', symbol: 'QQQ', fallbackPrice: 18250.00 };
+    default: return { name: 'NASDAQ 100 (NDX)', symbol: 'NDX', fallbackPrice: 27303.67 };
   }
 };
 
@@ -70,7 +70,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     candles: []
   });
 
-  // Atualização de Sessão e Index Real
   useEffect(() => {
     const updateIndex = async () => {
       const config = getIndexConfig(currentSession);
@@ -96,7 +95,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => clearInterval(interval);
   }, [currentSession, isWeekend]);
 
-  // Execução de Trade (Sem Telegram)
   useEffect(() => {
     if (isWeekend) return;
 
@@ -121,7 +119,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => { supabase.removeChannel(channel); };
   }, [isWeekend]);
 
-  // Inicialização de Dados Reais para todos os ativos
   useEffect(() => {
     const initData = async () => {
       setIsLoading(true);
@@ -130,7 +127,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       for (const a of ALL_OPERATED_ASSETS) {
         let candles = isWeekend ? [] : await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
         
-        // Fallback apenas se a API falhar ou for fim de semana
         if (candles.length === 0) {
           candles = generateMockCandles(100, 1.1);
         }
