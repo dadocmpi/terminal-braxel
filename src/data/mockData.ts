@@ -28,44 +28,49 @@ export const generateMockCandles = (count: number, basePrice: number): Candle[] 
 };
 
 export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timeframe) => {
-  // Se for fim de semana, retorna estado neutro absoluto
+  // Bloqueio de Fim de Semana
   if (isWeekend() || candles.length < 50) {
     return { d1Bias: 'NEUTRAL' as BiasDirection, premiumPct: 50, activeSignal: null };
   }
 
   const last = candles[candles.length - 1];
-  const prev = candles.slice(-30, -1);
+  const prev = candles.slice(-40, -1);
   
+  // 1. Identificação de Liquidez (PDH/PDL)
   const pdh = Math.max(...prev.map(c => c.high));
   const pdl = Math.min(...prev.map(c => c.low));
+  
+  // 2. Detecção de Manipulação (Liquidity Sweep)
   const sweptHigh = last.high > pdh;
   const sweptLow = last.low < pdl;
 
+  // 3. Confirmação de Volume (Smart Money Entry)
   const avgVolume = prev.reduce((acc, c) => acc + c.volume, 0) / prev.length;
-  const highVolume = last.volume > avgVolume * 1.5;
+  const institutionalVolume = last.volume > avgVolume * 1.8;
 
-  const hasFVG = Math.abs(candles[candles.length-3].high - candles[candles.length-1].low) > (last.close * 0.0003);
-  const isMSS = (last.close > pdh && candles[candles.length-2].close <= pdh) || 
-                (last.close < pdl && candles[candles.length-2].close >= pdl);
+  // 4. Market Structure Shift (MSS) - Confirmação de reversão
+  const isMSS_Buy = last.close > prev[prev.length-2].high && sweptLow;
+  const isMSS_Sell = last.close < prev[prev.length-2].low && sweptHigh;
 
+  // 5. Premium vs Discount
   const premiumPct = ((last.close - pdl) / (pdh - pdl)) * 100;
-  const bias: BiasDirection = last.close > (pdh + pdl) / 2 ? 'BUY' : 'SELL';
+  const bias: BiasDirection = premiumPct > 50 ? 'SELL' : 'BUY';
 
   let activeSignal: ActiveSignal | null = null;
   let confluences: string[] = [];
 
-  const canBuy = sweptLow && isMSS && highVolume && premiumPct < 40;
-  const canSell = sweptHigh && isMSS && highVolume && premiumPct > 60;
+  // Gatilho de Alta Probabilidade
+  const canBuy = isMSS_Buy && institutionalVolume && premiumPct < 35;
+  const canSell = isMSS_Sell && institutionalVolume && premiumPct > 65;
 
   if (canBuy || canSell) {
     const direction = canBuy ? 'BUY' : 'SELL';
-    let confidence = 85;
-    
-    if (highVolume) confluences.push('Institutional Volume Spike');
-    if (hasFVG) confluences.push('Fair Value Gap Created');
+    confluences.push('Institutional Liquidity Sweep');
+    confluences.push('Market Structure Shift (MSS)');
+    if (institutionalVolume) confluences.push('Volume Spike Confirmed');
 
     const range = pdh - pdl;
-    const sl_dist = range * 0.12;
+    const sl_dist = range * 0.15;
     const entry = last.close;
     const sl = direction === 'BUY' ? entry - sl_dist : entry + sl_dist;
     const multiplier = asset.includes('JPY') ? 100 : 10000;
@@ -73,16 +78,16 @@ export const analyzeWSBot = (candles: Candle[], asset: Asset, timeframe: Timefra
     activeSignal = {
       asset,
       direction,
-      type: confidence >= 90 ? 'A' : 'B',
+      type: 'A', // Sinais filtrados por MSS + Volume são sempre Tipo A
       entry,
       sl,
       tp1: direction === 'BUY' ? entry + (sl_dist * 2.0) : entry - (sl_dist * 2.0),
-      tp2: direction === 'BUY' ? entry + (sl_dist * 4.0) : entry - (sl_dist * 4.0),
+      tp2: direction === 'BUY' ? entry + (sl_dist * 4.5) : entry - (sl_dist * 4.5),
       sl_pips: sl_dist * multiplier,
       tp1_pips: (sl_dist * 2.0) * multiplier,
-      tp2_pips: (sl_dist * 4.0) * multiplier,
+      tp2_pips: (sl_dist * 4.5) * multiplier,
       rr: 2.0,
-      confidence: Math.min(99, confidence),
+      confidence: 92,
       status: 'PENDING',
       confluences,
       created_at: new Date().toISOString()
