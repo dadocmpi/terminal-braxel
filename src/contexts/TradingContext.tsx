@@ -4,7 +4,6 @@ import { analyzeWSBot, generateMockCandles } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { fetchHistoricalData } from '../services/marketData';
 import { showSuccess, showError } from '../utils/toast';
-import { sendToTelegram, formatTelegramSignal } from '../services/telegram';
 import { executeTrade } from '../services/broker';
 
 interface AssetData {
@@ -49,10 +48,10 @@ const getSession = (): MarketSession => {
 
 const getIndexConfig = (session: MarketSession) => {
   switch (session) {
-    case 'LONDON': return { name: 'GBP INDEX (BXY)', price: 125.50 };
-    case 'NEW_YORK': return { name: 'US DOLLAR INDEX (DXY)', price: 104.20 };
-    case 'TOKYO': return { name: 'YEN INDEX (JXY)', price: 72.80 };
-    default: return { name: 'NASDAQ 100 (NAS100)', price: 18250.00 };
+    case 'LONDON': return { name: 'GBP INDEX (BXY)', symbol: 'BXY', fallbackPrice: 125.50 };
+    case 'NEW_YORK': return { name: 'US DOLLAR INDEX (DXY)', symbol: 'DXY', fallbackPrice: 104.20 };
+    case 'TOKYO': return { name: 'YEN INDEX (JXY)', symbol: 'JXY', fallbackPrice: 72.80 };
+    default: return { name: 'NASDAQ 100 (NAS100)', symbol: 'QQQ', fallbackPrice: 18250.00 };
   }
 };
 
@@ -66,27 +65,38 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(true);
   const lastExecutedSignalRef = useRef<string | null>(null);
   
-  const config = getIndexConfig(currentSession);
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
-    name: config.name,
-    candles: generateMockCandles(100, config.price)
+    name: getIndexConfig(currentSession).name,
+    candles: []
   });
 
+  // Atualização de Sessão e Index Real
   useEffect(() => {
+    const updateIndex = async () => {
+      const config = getIndexConfig(currentSession);
+      let candles = isWeekend ? [] : await fetchHistoricalData(config.symbol, '5min', TWELVE_DATA_API_KEY);
+      
+      if (candles.length === 0) {
+        candles = generateMockCandles(100, config.fallbackPrice);
+      }
+      
+      setSessionIndex({ name: config.name, candles });
+    };
+
+    updateIndex();
+    
     const interval = setInterval(() => {
       const newSession = getSession();
       if (newSession !== currentSession) {
         setCurrentSession(newSession);
-        const newConfig = getIndexConfig(newSession);
-        setSessionIndex({
-          name: newConfig.name,
-          candles: generateMockCandles(100, newConfig.price)
-        });
       }
+      updateIndex();
     }, 60000);
+    
     return () => clearInterval(interval);
-  }, [currentSession]);
+  }, [currentSession, isWeekend]);
 
+  // Execução de Trade (Sem Telegram)
   useEffect(() => {
     if (isWeekend) return;
 
@@ -95,11 +105,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (lastExecutedSignalRef.current === signalKey) return;
       lastExecutedSignalRef.current = signalKey;
       
-      sendToTelegram(formatTelegramSignal(signal));
-      
       try {
         const result = await executeTrade(signal);
-        if (result.success) showSuccess(`AUTO-TRADE: ${signal.asset} EXECUTADO`);
+        if (result.success) showSuccess(`AUTO-TRADE: ${signal.asset} EXECUTADO NO MT5`);
       } catch (err) {
         showError(`FALHA NA EXECUÇÃO: ${signal.asset}`);
       }
@@ -113,19 +121,28 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => { supabase.removeChannel(channel); };
   }, [isWeekend]);
 
+  // Inicialização de Dados Reais para todos os ativos
   useEffect(() => {
     const initData = async () => {
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
+      
       for (const a of ALL_OPERATED_ASSETS) {
-        let candles = isWeekend ? generateMockCandles(100, 1.1) : await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
-        if (candles.length === 0) candles = generateMockCandles(100, 1.1);
+        let candles = isWeekend ? [] : await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
+        
+        // Fallback apenas se a API falhar ou for fim de semana
+        if (candles.length === 0) {
+          candles = generateMockCandles(100, 1.1);
+        }
+        
         const analysis = analyzeWSBot(candles, a, 'M1');
         initialData[a] = { candles, analysis, lastUpdate: Date.now() };
       }
+      
       setAllAssetsData(initialData);
       setIsLoading(false);
     };
+    
     initData();
   }, [isWeekend]);
 
