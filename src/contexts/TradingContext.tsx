@@ -47,6 +47,15 @@ const getSession = (): MarketSession => {
   return 'CLOSE';
 };
 
+const getIndexName = (session: MarketSession): string => {
+  switch (session) {
+    case 'LONDON': return 'FTSE 100 INDEX';
+    case 'NEW_YORK': return 'NASDAQ 100';
+    case 'TOKYO': return 'NIKKEI 225';
+    default: return 'NASDAQ 100'; // Default fora de sessão
+  }
+};
+
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentSession, setCurrentSession] = useState<MarketSession>(getSession());
   const [isWeekend, setIsWeekend] = useState(new Date().getDay() === 0 || new Date().getDay() === 6);
@@ -58,35 +67,42 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const lastExecutedSignalRef = useRef<string | null>(null);
   
   const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
-    name: 'BRAXEL INDEX',
-    candles: generateMockCandles(100, 100)
+    name: getIndexName(currentSession),
+    candles: generateMockCandles(100, currentSession === 'TOKYO' ? 38000 : currentSession === 'LONDON' ? 8000 : 18000)
   });
 
-  // Monitoramento de Sinais e Execução Automática
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newSession = getSession();
+      if (newSession !== currentSession) {
+        setCurrentSession(newSession);
+        setSessionIndex({
+          name: getIndexName(newSession),
+          candles: generateMockCandles(100, newSession === 'TOKYO' ? 38000 : newSession === 'LONDON' ? 8000 : 18000)
+        });
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [currentSession]);
+
   useEffect(() => {
     if (isWeekend) return;
 
     const processSignal = async (signal: ActiveSignal) => {
       const signalKey = `${signal.asset}-${signal.created_at}`;
       if (lastExecutedSignalRef.current === signalKey) return;
-      
       lastExecutedSignalRef.current = signalKey;
       
-      // 1. Notificar Telegram
       sendToTelegram(formatTelegramSignal(signal));
       
-      // 2. Executar no Broker (MetaApi)
       try {
         const result = await executeTrade(signal);
-        if (result.success) {
-          showSuccess(`AUTO-TRADE: ${signal.asset} EXECUTADO (Lote: ${result.lot})`);
-        }
+        if (result.success) showSuccess(`AUTO-TRADE: ${signal.asset} EXECUTADO`);
       } catch (err) {
         showError(`FALHA NA EXECUÇÃO: ${signal.asset}`);
       }
     };
 
-    // Escuta sinais do Banco de Dados (Nuvem)
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: 'INSERT', table: 'signals' }, (payload) => {
         processSignal(payload.new as ActiveSignal);
