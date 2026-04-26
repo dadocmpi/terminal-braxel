@@ -5,7 +5,7 @@ import { TradingProvider } from '../contexts/TradingContext';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { StatusCards } from '../components/StatusCards';
 import { ActiveSignal } from '../components/ActiveSignal';
-import { CandlestickChart } from '../components/CandlestickChart';
+import { MainIndexChart } from '../components/MainIndexChart';
 import { MarketNews } from '../components/MarketNews';
 import { WorldClocks } from '../components/WorldClocks';
 import { PremiumDiscountGrid } from '../components/PremiumDiscountGrid';
@@ -19,7 +19,6 @@ const LiveTerminal = () => {
     <div className="min-h-screen bg-background text-foreground flex flex-col relative">
       <DashboardHeader />
       
-      {/* Relógio Mundial agora no topo */}
       <WorldClocks />
       
       <div className="bg-black border-b border-white/5">
@@ -40,11 +39,11 @@ const LiveTerminal = () => {
             </div>
           </div>
 
-          {/* Coluna Central: Bias e Gráfico Real */}
+          {/* Coluna Central: Bias e Gráfico de Índice (10s) */}
           <div className="col-span-12 lg:col-span-6 border-r border-white/5 flex flex-col bg-black">
             <StatusCards />
             <div className="flex-[2] relative w-full border-b border-white/5">
-              <CandlestickChart />
+              <MainIndexChart />
             </div>
             <div className="flex-1 overflow-hidden">
               <MarketNews />

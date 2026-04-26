@@ -26,7 +26,7 @@ interface TradingContextType {
   isMarketOpen: boolean;
   isWeekend: boolean;
   allAssetsData: Record<string, AssetData>;
-  sessionIndex: { name: string; candles: Candle[] };
+  sessionIndex: { name: string; symbol: string; candles: Candle[] };
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
@@ -65,80 +65,56 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(true);
   const lastExecutedSignalRef = useRef<string | null>(null);
   
-  const [sessionIndex, setSessionIndex] = useState<{ name: string; candles: Candle[] }>({
+  const [sessionIndex, setSessionIndex] = useState<{ name: string; symbol: string; candles: Candle[] }>({
     name: getIndexConfig(currentSession).name,
+    symbol: getIndexConfig(currentSession).symbol,
     candles: []
   });
 
+  // Efeito para o Índice de 10 segundos
   useEffect(() => {
-    const updateIndex = async () => {
-      const config = getIndexConfig(currentSession);
-      let candles = isWeekend ? [] : await fetchHistoricalData(config.symbol, '5min', TWELVE_DATA_API_KEY);
-      
-      if (candles.length === 0) {
-        candles = generateMockCandles(100, config.fallbackPrice);
-      }
-      
-      setSessionIndex({ name: config.name, candles });
-    };
+    const config = getIndexConfig(currentSession);
+    let baseCandles = generateMockCandles(150, config.fallbackPrice);
+    setSessionIndex({ name: config.name, symbol: config.symbol, candles: baseCandles });
 
-    updateIndex();
-    
     const interval = setInterval(() => {
-      const newSession = getSession();
-      if (newSession !== currentSession) {
-        setCurrentSession(newSession);
-      }
-      updateIndex();
-    }, 60000);
-    
+      setSessionIndex(prev => {
+        const lastCandle = prev.candles[prev.candles.length - 1];
+        const volatility = config.fallbackPrice * 0.0002;
+        const newClose = lastCandle.close + (Math.random() - 0.5) * volatility;
+        
+        const newCandle: Candle = {
+          time: lastCandle.time + 10, // 10 segundos
+          open: lastCandle.close,
+          high: Math.max(lastCandle.close, newClose) + Math.random() * (volatility * 0.2),
+          low: Math.min(lastCandle.close, newClose) - Math.random() * (volatility * 0.2),
+          close: newClose,
+          volume: Math.random() * 5000
+        };
+
+        return {
+          ...prev,
+          candles: [...prev.candles.slice(1), newCandle]
+        };
+      });
+    }, 10000); // 10 segundos
+
     return () => clearInterval(interval);
-  }, [currentSession, isWeekend]);
-
-  useEffect(() => {
-    if (isWeekend) return;
-
-    const processSignal = async (signal: ActiveSignal) => {
-      const signalKey = `${signal.asset}-${signal.created_at}`;
-      if (lastExecutedSignalRef.current === signalKey) return;
-      lastExecutedSignalRef.current = signalKey;
-      
-      try {
-        const result = await executeTrade(signal);
-        if (result.success) showSuccess(`AUTO-TRADE: ${signal.asset} EXECUTADO NO MT5`);
-      } catch (err) {
-        showError(`FALHA NA EXECUÇÃO: ${signal.asset}`);
-      }
-    };
-
-    const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: 'INSERT', table: 'signals' }, (payload) => {
-        processSignal(payload.new as ActiveSignal);
-      }).subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [isWeekend]);
+  }, [currentSession]);
 
   useEffect(() => {
     const initData = async () => {
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
-      
       for (const a of ALL_OPERATED_ASSETS) {
         let candles = isWeekend ? [] : await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
-        
-        if (candles.length === 0) {
-          candles = generateMockCandles(100, 1.1);
-        }
-        
+        if (candles.length === 0) candles = generateMockCandles(100, 1.1);
         const analysis = analyzeWSBot(candles, a, 'M1');
         initialData[a] = { candles, analysis, lastUpdate: Date.now() };
       }
-      
       setAllAssetsData(initialData);
       setIsLoading(false);
     };
-    
     initData();
   }, [isWeekend]);
 
