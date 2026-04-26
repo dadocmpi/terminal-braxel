@@ -63,7 +63,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [dbSignals, setDbSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const lastExecutedSignalRef = useRef<string | null>(null);
   
   const [sessionIndex, setSessionIndex] = useState<{ name: string; symbol: string; candles: Candle[] }>({
     name: getIndexConfig(currentSession).name,
@@ -71,11 +70,24 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     candles: []
   });
 
-  // Efeito para o Índice de 10 segundos
+  const isMarketOpen = !isWeekend && currentSession !== 'CLOSE';
+
+  // Efeito para o Índice - APENAS SE O MERCADO ESTIVER ABERTO
   useEffect(() => {
     const config = getIndexConfig(currentSession);
-    let baseCandles = generateMockCandles(150, config.fallbackPrice);
-    setSessionIndex({ name: config.name, symbol: config.symbol, candles: baseCandles });
+    
+    const loadInitialIndex = async () => {
+      // Tenta buscar dados reais históricos mesmo no fds para mostrar o último estado
+      let candles = await fetchHistoricalData(config.symbol, '5min', TWELVE_DATA_API_KEY);
+      if (candles.length === 0) {
+        candles = generateMockCandles(150, config.fallbackPrice);
+      }
+      setSessionIndex({ name: config.name, symbol: config.symbol, candles });
+    };
+
+    loadInitialIndex();
+
+    if (!isMarketOpen) return; // Para aqui se for final de semana
 
     const interval = setInterval(() => {
       setSessionIndex(prev => {
@@ -84,7 +96,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const newClose = lastCandle.close + (Math.random() - 0.5) * volatility;
         
         const newCandle: Candle = {
-          time: lastCandle.time + 10, // 10 segundos
+          time: lastCandle.time + 10,
           open: lastCandle.close,
           high: Math.max(lastCandle.close, newClose) + Math.random() * (volatility * 0.2),
           low: Math.min(lastCandle.close, newClose) - Math.random() * (volatility * 0.2),
@@ -97,17 +109,17 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           candles: [...prev.candles.slice(1), newCandle]
         };
       });
-    }, 10000); // 10 segundos
+    }, 10000);
 
     return () => clearInterval(interval);
-  }, [currentSession]);
+  }, [currentSession, isMarketOpen]);
 
   useEffect(() => {
     const initData = async () => {
       setIsLoading(true);
       const initialData: Record<string, AssetData> = {};
       for (const a of ALL_OPERATED_ASSETS) {
-        let candles = isWeekend ? [] : await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
+        let candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
         if (candles.length === 0) candles = generateMockCandles(100, 1.1);
         const analysis = analyzeWSBot(candles, a, 'M1');
         initialData[a] = { candles, analysis, lastUpdate: Date.now() };
@@ -116,7 +128,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
     };
     initData();
-  }, [isWeekend]);
+  }, []);
 
   const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50 } };
 
@@ -136,7 +148,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isLoading,
       currentSession,
       activeAssets,
-      isMarketOpen: !isWeekend && currentSession !== 'CLOSE',
+      isMarketOpen,
       isWeekend,
       allAssetsData,
       sessionIndex
