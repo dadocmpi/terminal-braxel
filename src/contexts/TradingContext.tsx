@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Asset, Candle, BiasDirection, SignalsData, ActiveSignal, MarketSession, SESSION_ASSETS } from '../types/trading';
 import { analyzeWSBot } from '../data/mockData';
-import { fetchHistoricalData } from '../services/marketData';
+import { fetchHistoricalData, analyzeInstitutionalStrategy } from '../services/marketData';
 
 interface AssetData {
   candles: Candle[];
@@ -28,15 +28,17 @@ interface TradingContextType {
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
-const TWELVE_DATA_API_KEY = '65e9481bb8634db4b208afd0af073fdb';
+const TWELVE_DATA_API_KEY = 'a143c6507d1c49e08fe640980f18b2d8';
 const ALL_OPERATED_ASSETS: Asset[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD', 'GBPJPY', 'EURGBP', 'NZDUSD'];
 
 const getSession = (): MarketSession => {
   const now = new Date();
   const day = now.getDay();
   if (day === 0 || day === 6) return 'CLOSE';
+  
   const nyTime = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).formatToParts(now);
   const hour = parseInt(nyTime.find(p => p.type === 'hour')?.value || '0');
+  
   if (hour >= 5 && hour < 8) return 'LONDON';
   if (hour >= 8 && hour < 11) return 'NEW_YORK';
   if (hour >= 11 && hour < 14) return 'TOKYO';
@@ -45,7 +47,7 @@ const getSession = (): MarketSession => {
 
 const getIndexConfig = (session: MarketSession) => {
   switch (session) {
-    case 'LONDON': return { name: 'GBP INDEX', symbol: 'GBP/USD', fallbackPrice: 1.26 }; // Usando par real como proxy para o index se o index puro falhar
+    case 'LONDON': return { name: 'GBP INDEX', symbol: 'GBP/USD', fallbackPrice: 1.26 };
     case 'NEW_YORK': return { name: 'US DOLLAR INDEX', symbol: 'DXY', fallbackPrice: 104.00 };
     case 'TOKYO': return { name: 'YEN INDEX', symbol: 'USD/JPY', fallbackPrice: 150.00 };
     default: return { name: 'NASDAQ 100', symbol: 'QQQ', fallbackPrice: 440.00 };
@@ -60,82 +62,79 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [dbSignals, setDbSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
   const [sessionIndex, setSessionIndex] = useState<{ name: string; symbol: string; candles: Candle[] }>({
     name: getIndexConfig(currentSession).name,
     symbol: getIndexConfig(currentSession).symbol,
     candles: []
   });
 
-  const isMarketOpen = !isWeekend && currentSession !== 'CLOSE';
-
-  // Carregamento do Índice - APENAS DADOS REAIS
-  useEffect(() => {
-    const config = getIndexConfig(currentSession);
+  const updateAllData = async () => {
+    const newData: Record<string, AssetData> = {};
     
-    const loadIndexData = async () => {
-      const candles = await fetchHistoricalData(config.symbol, '5min', TWELVE_DATA_API_KEY);
-      if (candles && candles.length > 0) {
-        setSessionIndex({ name: config.name, symbol: config.symbol, candles });
-      } else {
-        console.warn(`Não foi possível carregar dados reais para ${config.symbol}`);
-        setSessionIndex(prev => ({ ...prev, candles: [] }));
-      }
-    };
+    for (const symbol of ALL_OPERATED_ASSETS) {
+      const candles = await fetchHistoricalData(symbol, '15min', TWELVE_DATA_API_KEY);
+      if (candles.length > 0) {
+        const institutionalSignal = analyzeInstitutionalStrategy(candles, symbol);
+        const botAnalysis = analyzeWSBot(candles, symbol);
+        
+        newData[symbol] = {
+          candles,
+          analysis: institutionalSignal || botAnalysis,
+          lastUpdate: Date.now()
+        };
 
-    loadIndexData();
-  }, [currentSession]);
-
-  // Carregamento dos Pares - APENAS DADOS REAIS
-  useEffect(() => {
-    const initData = async () => {
-      setIsLoading(true);
-      const initialData: Record<string, AssetData> = {};
-      
-      for (const a of ALL_OPERATED_ASSETS) {
-        const candles = await fetchHistoricalData(a, '1min', TWELVE_DATA_API_KEY);
-        if (candles && candles.length > 0) {
-          const analysis = analyzeWSBot(candles, a, 'M1');
-          initialData[a] = { candles, analysis, lastUpdate: Date.now() };
+        if (institutionalSignal && institutionalSignal.status === 'ACTIVE') {
+           setDbSignals(prev => {
+             const exists = prev.find(s => s.asset === symbol && s.time === institutionalSignal.time);
+             if (!exists) return [institutionalSignal, ...prev].slice(0, 20);
+             return prev;
+           });
         }
       }
-      
-      setAllAssetsData(initialData);
-      setIsLoading(false);
-    };
-    initData();
-  }, []);
+    }
+    
+    const idxConfig = getIndexConfig(currentSession);
+    const idxCandles = await fetchHistoricalData(idxConfig.symbol, '15min', TWELVE_DATA_API_KEY);
+    setSessionIndex(prev => ({ ...prev, candles: idxCandles }));
+    
+    setAllAssetsData(newData);
+    setIsLoading(false);
+  };
 
-  const currentData = allAssetsData[asset] || { candles: [], analysis: { d1Bias: 'NEUTRAL', premiumPct: 50 } };
+  useEffect(() => {
+    updateAllData();
+    const interval = setInterval(updateAllData, 60000); // Atualiza a cada minuto
+    return () => clearInterval(interval);
+  }, [currentSession]);
 
-  return (
-    <TradingContext.Provider value={{
-      asset, setAsset,
-      candles: currentData.candles,
-      d1Bias: isWeekend ? 'NEUTRAL' : currentData.analysis.d1Bias,
-      premiumPct: isWeekend ? 50 : currentData.analysis.premiumPct,
-      activeSignal: dbSignals.find(s => s.status === 'PENDING') || null,
-      signalsData: {
-        last_updated: new Date().toISOString(),
-        active_signal: null,
-        signals: dbSignals,
-        market_context: { pairs: [], activity_log: [] }
-      },
-      isLoading,
-      currentSession,
-      activeAssets,
-      isMarketOpen,
-      isWeekend,
-      allAssetsData,
-      sessionIndex
-    }}>
-      {children}
-    </TradingContext.Provider>
-  );
+  const currentData = allAssetsData[asset] || { candles: [], analysis: null };
+
+  const value = {
+    asset,
+    setAsset,
+    candles: currentData.candles,
+    d1Bias: currentData.analysis?.direction || 'NEUTRAL',
+    premiumPct: 50,
+    activeSignal: currentData.analysis,
+    signalsData: {
+      daily: { bias: currentData.analysis?.direction || 'NEUTRAL', strength: 80 },
+      h4: { bias: 'NEUTRAL', strength: 50 },
+      h1: { bias: 'NEUTRAL', strength: 50 }
+    },
+    isLoading,
+    currentSession,
+    activeAssets,
+    isMarketOpen: currentSession !== 'CLOSE',
+    isWeekend,
+    allAssetsData,
+    sessionIndex
+  };
+
+  return <TradingContext.Provider value={value}>{children}</TradingContext.Provider>;
 };
 
 export const useTrading = () => {
   const context = useContext(TradingContext);
-  if (!context) throw new Error('useTrading must be used within a TradingProvider');
+  if (context === undefined) throw new Error('useTrading must be used within a TradingProvider');
   return context;
 };
