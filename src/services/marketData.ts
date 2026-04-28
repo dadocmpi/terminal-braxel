@@ -48,10 +48,11 @@ export const analyzeInstitutionalStrategy = (candles: Candle[], asset: string) =
 
   const last = candles[candles.length - 1];
   const prev = candles.slice(-20, -1);
-  
+
   // 1. Liquidez (Stop Hunt)
   const pdh = Math.max(...prev.map(c => c.high));
   const pdl = Math.min(...prev.map(c => c.low));
+  
   const sweptHigh = last.high > pdh;
   const sweptLow = last.low < pdl;
 
@@ -64,25 +65,19 @@ export const analyzeInstitutionalStrategy = (candles: Candle[], asset: string) =
   const isMSS_Sell = last.close < prev[prev.length - 2].low && sweptHigh;
 
   if ((isMSS_Buy || isMSS_Sell) && institutionalVolume) {
-    const direction = isMSS_Buy ? 'BUY' : 'SELL';
-    const entry = last.close;
-    const range = pdh - pdl;
-    const sl_dist = range * 0.2;
-    const multiplier = asset.includes('JPY') ? 100 : 10000;
-
     return {
+      id: `${asset}-${Date.now()}`,
       asset,
-      direction,
-      entry,
-      sl: direction === 'BUY' ? entry - sl_dist : entry + sl_dist,
-      tp1: direction === 'BUY' ? entry + (sl_dist * 2) : entry - (sl_dist * 2),
-      tp2: direction === 'BUY' ? entry + (sl_dist * 4) : entry - (sl_dist * 4),
-      confidence: 85,
-      type: 'INSTITUTIONAL',
-      status: 'ACTIVE',
-      time: new Date().toLocaleTimeString()
+      time: new Date().toLocaleTimeString(),
+      direction: isMSS_Buy ? 'BUY' : 'SELL',
+      type: 'INSTITUTIONAL_DYAD',
+      entry: last.close,
+      sl: isMSS_Buy ? pdl : pdh,
+      tp1: last.close + (isMSS_Buy ? (last.close - pdl) * 2 : -(pdh - last.close) * 2),
+      confidence: 85 + Math.min(10, (last.volume / avgVolume) * 2),
+      status: 'ACTIVE'
     };
   }
 
   return null;
-};...
+};
