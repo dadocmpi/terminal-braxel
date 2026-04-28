@@ -57,7 +57,7 @@ const getIndexConfig = (session: MarketSession) => {
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentSession, setCurrentSession] = useState<MarketSession>(getSession());
   const [isWeekend, setIsWeekend] = useState(new Date().getDay() === 0 || new Date().getDay() === 6);
-  const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession]);
+  const [activeAssets, setActiveAssets] = useState<Asset[]>(SESSION_ASSETS[currentSession] || SESSION_ASSETS['NEW_YORK']);
   const [asset, setAsset] = useState<Asset>(activeAssets[0] || 'EURUSD');
   const [allAssetsData, setAllAssetsData] = useState<Record<string, AssetData>>({});
   const [dbSignals, setDbSignals] = useState<any[]>([]);
@@ -84,43 +84,35 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         };
 
         if (institutionalSignal && institutionalSignal.status === 'ACTIVE') {
-           setDbSignals(prev => {
-             const exists = prev.find(s => s.asset === symbol && s.time === institutionalSignal.time);
-             if (!exists) return [institutionalSignal, ...prev].slice(0, 20);
-             return prev;
-           });
+          setDbSignals(prev => {
+            const exists = prev.find(s => s.asset === symbol && s.time === institutionalSignal.time);
+            if (exists) return prev;
+            return [institutionalSignal, ...prev].slice(0, 20);
+          });
         }
       }
     }
     
-    const idxConfig = getIndexConfig(currentSession);
-    const idxCandles = await fetchHistoricalData(idxConfig.symbol, '15min', TWELVE_DATA_API_KEY);
-    setSessionIndex(prev => ({ ...prev, candles: idxCandles }));
-    
     setAllAssetsData(newData);
-    setIsLoading(false);
+    setIsLoading(newData[asset] ? false : true);
   };
 
   useEffect(() => {
     updateAllData();
-    const interval = setInterval(updateAllData, 60000); // Atualiza a cada minuto
+    const interval = setInterval(updateAllData, 60000);
     return () => clearInterval(interval);
-  }, [currentSession]);
+  }, []);
 
-  const currentData = allAssetsData[asset] || { candles: [], analysis: null };
+  const currentAssetData = allAssetsData[asset] || { candles: [], analysis: null };
 
-  const value = {
+  const value: TradingContextType = {
     asset,
     setAsset,
-    candles: currentData.candles,
-    d1Bias: currentData.analysis?.direction || 'NEUTRAL',
+    candles: currentAssetData.candles,
+    d1Bias: currentAssetData.analysis?.direction || 'NEUTRAL',
     premiumPct: 50,
-    activeSignal: currentData.analysis,
-    signalsData: {
-      daily: { bias: currentData.analysis?.direction || 'NEUTRAL', strength: 80 },
-      h4: { bias: 'NEUTRAL', strength: 50 },
-      h1: { bias: 'NEUTRAL', strength: 50 }
-    },
+    activeSignal: currentAssetData.analysis,
+    signalsData: { signals: dbSignals, lastUpdate: new Date().toISOString() },
     isLoading,
     currentSession,
     activeAssets,
@@ -130,11 +122,17 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     sessionIndex
   };
 
-  return <TradingContext.Provider value={value}>{children}</TradingContext.Provider>;
+  return (
+    <TradingContext.Provider value={value}>
+      {children}
+    </TradingContext.Provider>
+  );
 };
 
 export const useTrading = () => {
   const context = useContext(TradingContext);
-  if (context === undefined) throw new Error('useTrading must be used within a TradingProvider');
+  if (context === undefined) {
+    throw new Error('useTrading must be used within a TradingProvider');
+  }
   return context;
 };
